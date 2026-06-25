@@ -1,0 +1,3358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a3a5c">
+<title>EduTrack – Teacher App</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+
+  :root {
+    --navy: #1a3a5c;
+    --navy-light: #254e7a;
+    --teal: #0d9e8a;
+    --teal-light: #e6f7f5;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --green: #22c55e;
+    --bg: #f0f4f8;
+    --card: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 14px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    overscroll-behavior: none;
+    overscroll-behavior-y: contain;
+    touch-action: pan-x pan-y;
+  }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    overscroll-behavior: none;
+    overscroll-behavior-y: contain;
+    position: fixed;
+    width: 100%;
+    top: 0; left: 0;
+  }
+
+  /* ── SCREENS ──
+     Use dynamic viewport height (dvh) so the URL bar on mobile browsers
+     does not clip the scrollable area. Fallback to vh for old browsers. */
+  .screen {
+    display: none;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    position: relative;
+  }
+  .screen.active { display: flex; }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--navy);
+    color: white;
+    padding: 14px 18px;
+    min-height:72px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .header-back{
+    width:44px;height:44px;min-width:44px;
+    border:none;border-radius:14px;
+    background:rgba(255,255,255,.10);
+    backdrop-filter:blur(10px);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;cursor:pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.15),0 4px 10px rgba(0,0,0,.15);
+    transition:.25s ease;
+}
+  .header-back:hover { background: rgba(255,255,255,0.25); }
+  .header-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; flex: 1; }
+  .header-sub { font-size: 12px; opacity: 0.7; }
+
+  /* ── CONTENT ── */
+  .content { flex: 1; min-height: 0; padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: none; overscroll-behavior-y: contain; touch-action: pan-y; }
+
+  /* ── LOGO / SPLASH ── */
+  .splash {
+    background: linear-gradient(145deg, var(--navy) 0%, var(--navy-light) 60%, #1a6b7a 100%);
+    flex: 1; min-height: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px 24px;
+    color: white;
+    text-align: center;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  .splash-icon {
+    width: 88px; height: 88px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 24px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 44px; margin-bottom: 24px;
+    border: 2px solid rgba(255,255,255,0.2);
+  }
+  .splash h1 { font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+  .splash p { font-size: 15px; opacity: 0.75; margin-bottom: 40px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px; font-weight: 700;
+    color: var(--navy); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* ── FORM ── */
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
+  .form-input {
+    width: 100%; padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px; font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    color: var(--text); background: white;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  .form-input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(13,158,138,0.12); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px 24px; border-radius: 12px;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer; border: none; transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-primary { background: var(--teal); color: white; width: 100%; }
+  .btn-primary:hover { background: #0b8a79; transform: translateY(-1px); }
+  .btn-secondary { background: var(--navy); color: white; }
+  .btn-secondary:hover { background: var(--navy-light); }
+  .btn-outline { background: transparent; color: var(--navy); border: 1.5px solid var(--navy); }
+  .btn-danger { background: var(--red); color: white; }
+  .btn-sm { padding: 8px 14px; font-size: 13px; border-radius: 8px; }
+  .btn-icon { width: 36px; height: 36px; padding: 0; border-radius: 10px; }
+
+  /* ── CLASS CARDS ── */
+  .class-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px 20px;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 16px;
+    cursor: pointer; transition: all 0.2s;
+    border-left: 4px solid var(--teal);
+  }
+  .class-card:hover { transform: translateX(4px); box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
+  .class-badge {
+    width: 52px; height: 52px; border-radius: 14px;
+    background: var(--teal-light);
+    color: var(--teal); font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-weight: 700;
+  }
+  .class-info { flex: 1; }
+  .class-name { font-weight: 700; font-size: 16px; color: var(--navy); }
+  .class-meta { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .class-arrow { color: var(--muted); font-size: 20px; }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex; background: var(--navy);
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    flex-shrink: 0;
+  }
+  .tab {
+    flex: 1; min-width: 100px; padding: 13px 16px;
+    color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 600;
+    border: none; background: transparent; cursor: pointer;
+    border-bottom: 3px solid transparent; transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab.active { color: white; border-bottom-color: var(--teal); }
+
+  .tab-content { display: none; padding: 20px; }
+  .tab-content.active { display: block; flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: none; overscroll-behavior-y: contain; touch-action: pan-y; }
+
+  /* ── STUDENT ROW ── */
+  .student-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .student-row:last-child { border-bottom: none; }
+  .student-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--navy), var(--teal));
+    color: white; font-weight: 700; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .student-name-info { flex:1; min-width:0; padding-right:10px; }
+  .student-name { font-weight: 600; font-size: 14px; }
+  .student-roll { font-size: 12px; color: var(--muted); }
+
+  /* ── ATTENDANCE ── */
+  .att-toggle {
+    display: flex; border-radius: 8px; overflow: hidden;
+    border: 1.5px solid var(--border); flex-shrink: 0;
+  }
+  .att-btn {
+    padding: 6px 12px; font-size: 12px; font-weight: 700;
+    border: none; cursor: pointer; transition: all 0.15s;
+    background: white; color: var(--muted);
+  }
+  .att-btn.present.active { background: var(--green); color: white; }
+  .att-btn.absent.active { background: var(--red); color: white; }
+  .att-divider { width: 1px; background: var(--border); }
+
+  /* ── EXAM ── */
+  .exam-card {
+    background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .exam-header {
+    background: var(--navy); color: white;
+    padding: 14px 18px; display: flex; align-items: center;
+    justify-content: space-between;
+  }
+  .exam-title { font-weight: 700; font-size: 15px; }
+  .exam-body { padding: 16px 18px; }
+  .subject-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 10px;
+  }
+  .subject-label { font-size: 13px; font-weight: 600; flex: 1; color: var(--text); }
+  .subject-input {
+    width: 80px; padding: 8px 10px; text-align: center;
+    border: 1.5px solid var(--border); border-radius: 8px;
+    font-size: 14px; font-weight: 600; outline: none;
+    transition: border-color 0.2s;
+  }
+  .subject-input:focus { border-color: var(--teal); }
+  .max-label { font-size: 12px; color: var(--muted); width: 60px; text-align: center; }
+
+  /* ── RESULT CARDS ── */
+  .result-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    margin-top: 16px;
+  }
+  .result-box {
+    background: var(--teal-light); border-radius: 10px;
+    padding: 12px; text-align: center;
+  }
+  .result-box.gold { background: #fef3c7; }
+  .result-box.blue { background: #dbeafe; }
+  .result-val { font-size: 20px; font-weight: 700; color: var(--navy); }
+  .result-lbl { font-size: 11px; color: var(--muted); font-weight: 600; margin-top: 3px; }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    display: flex; gap: 10px; margin-bottom: 16px;
+  }
+  .stat-chip {
+    flex: 1; background: var(--card); border-radius: 10px;
+    padding: 12px; text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .stat-val { font-size: 22px; font-weight: 700; color: var(--navy); }
+  .stat-lbl { font-size: 11px; color: var(--muted); font-weight: 600; }
+
+  /* ── ADD CLASS MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 200; display: none; align-items: flex-end;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-sheet {
+    background: white; width: 100%; border-radius: 24px 24px 0 0;
+    padding: 24px 20px 40px; animation: slideUp 0.3s ease;
+    max-height: 90vh; max-height: 90dvh;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-handle {
+    width: 40px; height: 4px; background: var(--border);
+    border-radius: 2px; margin: 0 auto 20px;
+  }
+  .modal-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 20px; color: var(--navy); }
+
+  /* ── ATTENDANCE DATE BAR ── */
+  .date-bar {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--card); border-radius: 12px;
+    padding: 12px 16px; margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  .date-bar label { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .date-input {
+    border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 8px 12px; font-size: 14px; outline: none;
+    flex: 1; font-family: 'Inter', sans-serif;
+  }
+  .date-input:focus { border-color: var(--teal); }
+
+  /* ── ATTENDANCE SUMMARY ── */
+  .att-summary {
+    display: flex; gap: 8px; margin-bottom: 16px;
+  }
+  .att-chip {
+    flex: 1; border-radius: 10px; padding: 10px;
+    text-align: center; font-weight: 700;
+  }
+  .att-chip.p { background: #dcfce7; color: #16a34a; }
+  .att-chip.a { background: #fee2e2; color: #dc2626; }
+  .att-chip.t { background: #dbeafe; color: #1d4ed8; }
+  .att-chip-val { font-size: 20px; }
+  .att-chip-lbl { font-size: 11px; font-weight: 600; }
+
+  /* ── FAB ── */
+  .fab {
+    position: absolute; right: 24px;
+    bottom: calc(28px + env(safe-area-inset-bottom));
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--teal); color: white;
+    border: none; font-size: 28px; cursor: pointer;
+    box-shadow: 0 4px 20px rgba(13,158,138,0.4);
+    align-items: center; justify-content: center;
+    transition: all 0.2s; z-index: 50;
+    display: none;
+  }
+  .fab.show { display: flex; }
+  .fab:hover { transform: scale(1.1); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+    background: var(--navy); color: white; padding: 12px 20px;
+    border-radius: 20px; font-size: 14px; font-weight: 500;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 999;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ── MISC ── */
+  .section-title {
+    font-size: 13px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.8px;
+    margin-bottom: 12px; margin-top: 4px;
+  }
+  .empty-state {
+    text-align: center; padding: 48px 24px; color: var(--muted);
+  }
+  .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; }
+
+  .chip {
+    display: inline-flex; align-items: center;
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+    background: var(--teal-light); color: var(--teal);
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  
+  .export-bar {
+    display: flex; gap: 10px; margin-bottom: 16px;
+  }
+  .export-bar .btn { flex: 1; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+  /* ── TEACHER PROFILE CARD ── */
+  .teacher-profile {
+    background: linear-gradient(135deg, var(--navy), var(--navy-light));
+    border-radius: var(--radius); padding: 20px;
+    color: white; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .teacher-avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    border: 3px solid rgba(255,255,255,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; flex-shrink: 0;
+  }
+  .teacher-info { flex: 1; }
+  .teacher-name { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; }
+  .teacher-school { font-size: 13px; opacity: 0.75; margin-top: 4px; }
+
+  /* ── EXAM REGISTER TABLE ── */
+  .register-wrap {
+    overflow-x: auto; overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+    padding: 0 8px 8px;
+  }
+  .register-table {
+    border-collapse: collapse;
+    min-width: 100%;
+    font-size: 12px;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .register-table .title-row td {
+    background: var(--navy);
+    color: white;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 12px 14px;
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+  .register-table .header-row th {
+    background: #1e4976;
+    color: white;
+    padding: 9px 8px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 11px;
+    white-space: nowrap;
+    border: 1px solid rgba(255,255,255,0.15);
+    position: sticky; top: 0; z-index: 2;
+  }
+  .register-table .header-row th.col-sno { width: 40px; }
+  .register-table .header-row th.col-name { min-width: 140px; text-align: left; position: sticky; left: 0; z-index: 3; background: #1e4976; }
+  .register-table td {
+    border: 1px solid #e2e8f0;
+    padding: 6px 5px;
+    text-align: center;
+    vertical-align: middle;
+  }
+  .register-table td.col-sno { color: var(--muted); font-size: 11px; }
+  .register-table td.col-name {
+    text-align: left; font-weight: 600; font-size: 12px;
+    white-space: nowrap; padding-left: 10px;
+    position: sticky; left: 0; background: white; z-index: 1;
+    border-right: 2px solid var(--teal);
+  }
+  .register-table tr:nth-child(even) td { background: #f8fafc; }
+  .register-table tr:nth-child(even) td.col-name { background: #f8fafc; }
+  .register-table tr:hover td { background: #e6f7f5 !important; }
+  .mark-input {
+    width: 44px; padding: 4px 2px; text-align: center;
+    border: 1.5px solid #e2e8f0; border-radius: 6px;
+    font-size: 12px; font-weight: 700;
+    background: #f0faf9; outline: none;
+    font-family: 'Inter', sans-serif;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .mark-input:focus { border-color: var(--teal); box-shadow: 0 0 0 2px rgba(13,158,138,0.15); background: white; }
+  .mark-input:disabled { background: #f1f5f9; color: #94a3b8; border-color: #e2e8f0; }
+  .exam-reg-tab {
+    padding: 7px 14px; border-radius: 20px; border: 1.5px solid var(--navy);
+    background: white; color: var(--navy); font-size: 12px; font-weight: 700;
+    cursor: pointer; white-space: nowrap; transition: all 0.15s; font-family: 'Inter', sans-serif;
+  }
+  .exam-reg-tab.active { background: var(--navy); color: white; }
+  .total-cell { font-weight: 700; color: var(--navy); background: #dbeafe !important; }
+  .pct-cell { font-weight: 700; color: var(--teal); background: #e6f7f5 !important; }
+  .grade-cell { font-weight: 700; }
+
+  .exam-preset-btn {
+    padding: 6px 12px; border-radius: 20px;
+    border: 1.5px solid var(--navy); background: white;
+    color: var(--navy); font-size: 12px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif;
+  }
+  .exam-preset-btn:hover, .exam-preset-btn.active {
+    background: var(--navy); color: white;
+  }
+  .subject-check-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 8px; border-radius: 8px; background: white;
+    border: 1px solid var(--border);
+  }
+  .subject-check-row input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--teal); }
+  .subject-check-row label { font-size: 14px; font-weight: 500; cursor: pointer; flex: 1; }
+  .subject-check-row .del-sub { background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; padding: 0 4px; }
+
+  /* ── ACCOUNT BOOK ── */
+  .ledger-table { width:100%; border-collapse:collapse; font-size:12px; background:white; border-radius:10px; overflow:hidden; box-shadow:var(--shadow); }
+  .ledger-table th { background:var(--navy); color:white; padding:9px 10px; text-align:center; font-size:11px; font-weight:700; border:1px solid rgba(255,255,255,0.1); }
+  .ledger-table th.col-reason { text-align:left; min-width:120px; }
+  .ledger-table td { border:1px solid #e2e8f0; padding:8px 10px; font-size:12px; text-align:center; vertical-align:middle; }
+  .ledger-table td.col-reason { text-align:left; font-weight:500; }
+  .ledger-table tr:nth-child(even) td { background:#f8fafc; }
+  .ledger-table .credit-row td { background:#f0fdf4 !important; }
+  .ledger-table .debit-row td { background:#fff5f5 !important; }
+  .credit-amt { color:#16a34a; font-weight:700; }
+  .debit-amt  { color:#dc2626; font-weight:700; }
+  .balance-amt { color:var(--navy); font-weight:700; }
+  .del-txn { background:none; border:none; color:#dc2626; cursor:pointer; font-size:14px; padding:2px 4px; }
+
+  /* ── ATTENDANCE 4-button toggle ── */
+  .att-toggle-4 { display:flex; width:160px; min-width:160px; max-width:160px; border-radius:10px; overflow:hidden; border:1.5px solid var(--border); flex-shrink:0; } .att-btn4 { flex:1; min-width:40px; height:52px; padding:0; font-size:16px; font-weight:700; border:none; cursor:pointer; transition:all 0.15s; background:white; color:var(--muted); }
+  .att-btn4.p.active  { background:var(--green); color:white; }
+  .att-btn4.a.active  { background:var(--red); color:white; }
+  .att-btn4.s.active  { background:#f59e0b; color:white; }
+  .att-btn4.l.active  { background:#8b5cf6; color:white; }
+
+  @media (max-width:380px) {
+    .result-grid { grid-template-columns:repeat(3,1fr); }
+    .tab { font-size:11px; padding:11px 8px; }
+  }
+
+/* ══ FLUID UI SYSTEM ══════════════════════════════════════ */
+
+/* Global touch */
+*, *::before, *::after { -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+body { overscroll-behavior-y: none; }
+button { touch-action: manipulation; }
+
+/* Date inputs — override browser pink */
+input[type="date"], input[type="month"] {
+  color-scheme: light;
+  accent-color: var(--teal);
+  background: white !important;
+  color: var(--text) !important;
+}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator {
+  filter: invert(42%) sepia(80%) saturate(500%) hue-rotate(130deg) brightness(85%);
+  cursor: pointer;
+}
+
+/* Screen transitions */
+.screen {
+  display: none;
+  height: 100vh; height: 100dvh;
+  overflow: hidden;
+  flex-direction: column;
+  position: relative;
+  will-change: opacity, transform;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+}
+.screen.active { display: flex; }
+@keyframes scrIn   { from{opacity:0;transform:translate3d(24px,0,0)} to{opacity:1;transform:translate3d(0,0,0)} }
+@keyframes scrBack { from{opacity:0;transform:translate3d(-16px,0,0)} to{opacity:1;transform:translate3d(0,0,0)} }
+.screen.anim-in   { animation: scrIn   0.24s cubic-bezier(0.22,1,0.36,1) both; }
+.screen.anim-back { animation: scrBack 0.20s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* Tab content */
+.tab-content { display:none; padding:20px; will-change:opacity,transform; }
+.tab-content.active { display:block; animation: tabIn 0.20s cubic-bezier(0.22,1,0.36,1) both; }
+@keyframes tabIn { from{opacity:0;transform:translate3d(16px,0,0)} to{opacity:1;transform:translate3d(0,0,0)} }
+
+/* Scroll containers — overscroll:none blocks the browser pull-to-refresh
+   when the container is at its top edge and the user keeps pulling down. */
+.content, #stu-form-scroll, #exam-form-scroll, .tab-content, #student-detail-content-screen {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+}
+
+/* Button press */
+.btn { transition: background 0.12s, transform 0.08s, box-shadow 0.1s; user-select:none; }
+.btn:active { transform: scale(0.962); }
+.btn-primary:active { background: #0a7d6d; }
+
+/* FAB */
+.fab { transition: transform 0.15s cubic-bezier(0.22,1,0.36,1), box-shadow 0.12s; }
+.fab:active { transform: scale(0.88) !important; }
+
+/* Attendance buttons */
+.att-btn4 { transition: background 0.1s, transform 0.08s; }
+.att-btn4:active { transform: scale(0.90); }
+
+/* Preset buttons */
+.exam-preset-btn { transition: background 0.1s, color 0.1s, transform 0.08s; }
+.exam-preset-btn:active { transform: scale(0.93); }
+
+/* Class cards */
+.class-card { transition: transform 0.18s cubic-bezier(0.22,1,0.36,1), box-shadow 0.16s; }
+.class-card:active { transform: scale(0.984) translateX(2px); }
+
+/* Student rows */
+.student-row { transition: background 0.1s; cursor: pointer; }
+.student-row:active { background: var(--teal-light) !important; border-radius: 8px; }
+
+/* Header back */
+.header-back { transition: background 0.12s, transform 0.08s; }
+.header-back:active { transform: scale(0.87); background: rgba(255,255,255,0.28) !important; }
+
+/* Inputs */
+.form-input { transition: border-color 0.16s, box-shadow 0.16s; -webkit-appearance:none; }
+.form-input:focus { border-color:var(--teal); box-shadow:0 0 0 3px rgba(13,158,138,0.12); outline:none; }
+
+/* Toast */
+.toast { transition: opacity 0.20s cubic-bezier(0.22,1,0.36,1); }
+
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════ -->
+<!--  SCREEN 1: SPLASH / TEACHER SETUP  -->
+<!-- ════════════════════════════════════ -->
+<div id="screen-splash" class="screen active">
+  <div class="splash">
+    <div class="splash-icon">📚</div>
+    <h1>EduTrack</h1>
+    <p>Smart classroom management for teachers</p>
+
+    <div style="width:100%; max-width:420px;">
+      <div class="card">
+        <div class="card-title">👨‍🏫 Teacher Details</div>
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input class="form-input" id="t-name" placeholder="e.g. Praneeth Kumar" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">School / College Name</label>
+          <input class="form-input" id="t-school" placeholder="e.g. MJPTBCWR Junior College" />
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label class="form-label">Subject</label>
+            <input class="form-input" id="t-subject" placeholder="Chemistry" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Employee ID</label>
+            <input class="form-input" id="t-id" placeholder="TCH001" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mobile Number</label>
+          <input class="form-input" id="t-mobile" placeholder="+91 9XXXXXXXXX" type="tel" />
+        </div>
+        <button class="btn btn-primary" onclick="saveTeacher()">
+          Continue to Dashboard →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════ -->
+<!--  SCREEN 2: DASHBOARD / CLASS LIST  -->
+<!-- ════════════════════════════════════ -->
+<div id="screen-dashboard" class="screen">
+  <div class="header">
+    <div style="flex:1;">
+      <div class="header-title">📚 EduTrack</div>
+      <div class="header-sub" id="dash-teacher-name">Loading...</div>
+    </div>
+    <button onclick="openBackup()" title="Backup & Restore"
+      style="width:36px;height:36px;border:none;border-radius:10px;background:rgba(255,255,255,0.15);
+             color:white;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+             margin-right:6px;touch-action:manipulation;">💾</button>
+    <button class="btn btn-sm btn-outline" style="color:white;border-color:rgba(255,255,255,0.4);font-size:12px;" onclick="goToProfile()">✏️ Profile</button>
+  </div>
+  <div class="content">
+    <!-- Teacher Profile Card -->
+    <div id="teacher-profile-card" class="teacher-profile" style="position:relative;">
+      <!-- Teacher Photo -->
+      <div style="position:relative;flex-shrink:0;">
+        <div id="teacher-avatar-box"
+          style="width:72px;height:72px;border-radius:50%;overflow:hidden;
+                 background:rgba(255,255,255,0.15);border:3px solid rgba(255,255,255,0.35);
+                 display:flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer;"
+          onclick="document.getElementById('teacher-photo-input').click()" title="Tap to change photo">
+          <img id="teacher-photo-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;" />
+          <span id="teacher-photo-icon">👨‍🏫</span>
+        </div>
+        <div onclick="document.getElementById('teacher-photo-input').click()"
+          style="position:absolute;bottom:0;right:0;width:22px;height:22px;background:var(--teal);
+                 border-radius:50%;display:flex;align-items:center;justify-content:center;
+                 font-size:11px;cursor:pointer;border:2px solid white;">📷</div>
+        <input type="file" id="teacher-photo-input" accept="image/*" style="display:none;" onchange="handleTeacherPhoto(this)" />
+      </div>
+      <div class="teacher-info">
+        <div class="teacher-name" id="profile-name">-</div>
+        <div class="teacher-school" id="profile-school">-</div>
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+          <span class="chip" id="profile-subject">-</span>
+          <span class="chip" id="profile-id" style="background:#fef3c7;color:#92400e;">-</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div class="section-title" style="margin:0;">My Classes</div>
+      <span style="font-size:12px;color:var(--muted);">Tap ⋮ for options</span>
+    </div>
+    <div id="class-list"></div>
+    <div id="class-empty" class="empty-state" style="display:none;">
+      <div class="emoji">🏫</div>
+      <p>No classes yet.<br>Tap <strong>+</strong> to add your first class.</p>
+    </div>
+  </div>
+  <button class="fab show" onclick="openAddClass()">+</button>
+</div>
+
+<!-- ════════════════════════════════════ -->
+<!--  SCREEN 3: CLASS DETAIL (TABS)     -->
+<!-- ════════════════════════════════════ -->
+<div id="screen-class" class="screen">
+  <div class="header">
+    <button class="header-back" onclick="goBack('screen-dashboard')">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M15 18L9 12L15 6"/>
+</svg>
+</button>
+    <div style="flex:1;">
+      <div class="header-title" id="class-screen-name">Class</div>
+      <div class="header-sub" id="class-screen-meta">-</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('tab-personal', this)">👤 Students</button>
+    <button class="tab" onclick="switchTab('tab-attendance', this)">✅ Attendance</button>
+    <button class="tab" onclick="switchTab('tab-exams', this)">📝 Exams</button>
+    <button class="tab" onclick="switchTab('tab-accounts', this)">💰 Accounts</button>
+  </div>
+
+  <!-- TAB 1: STUDENT PERSONAL DETAILS -->
+  <div id="tab-personal" class="tab-content active">
+    <div id="student-list-personal"></div>
+    <div style="height:90px;"></div>
+  </div>
+
+  <!-- TAB 2: ATTENDANCE — CLASS + HOUSE -->
+  <div id="tab-attendance" class="tab-content">
+
+    <!-- Type Toggle -->
+    <div style="display:flex;background:#dde6f0;border-radius:14px;padding:4px;gap:4px;margin-bottom:14px;">
+      <button id="att-btn-class" onclick="switchAttType('class')"
+        style="flex:1;padding:11px 8px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;
+               background:var(--navy);color:white;transition:all .2s;touch-action:manipulation;">
+        🏫 Class
+      </button>
+      <button id="att-btn-house" onclick="switchAttType('house')"
+        style="flex:1;padding:11px 8px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;
+               background:transparent;color:var(--navy);transition:all .2s;touch-action:manipulation;">
+        🏠 House
+      </button>
+    </div>
+    <div id="att-type-desc" style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.5px;text-align:center;margin-bottom:12px;text-transform:uppercase;">
+      Class Attendance — Sundays/Holidays not counted
+    </div>
+
+    <!-- Date -->
+    <div class="date-bar">
+      <label>📅 Date:</label>
+      <input type="date" class="date-input" id="att-date" style="color-scheme:light;accent-color:var(--teal);" />
+    </div>
+
+    <!-- Summary chips -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:14px;">
+      <div class="att-chip p"><div class="att-chip-val" id="att-present-count">0</div><div class="att-chip-lbl">Present</div></div>
+      <div class="att-chip a"><div class="att-chip-val" id="att-absent-count">0</div><div class="att-chip-lbl">Absent</div></div>
+      <div class="att-chip" style="background:#fef3c7;color:#92400e;border-radius:10px;padding:10px;text-align:center;">
+        <div class="att-chip-val" id="att-sick-count">0</div><div class="att-chip-lbl">Sick</div></div>
+      <div class="att-chip" style="background:#f3e8ff;color:#7c3aed;border-radius:10px;padding:10px;text-align:center;">
+        <div class="att-chip-val" id="att-leave-count">0</div><div class="att-chip-lbl">Leave</div></div>
+      <div class="att-chip t"><div class="att-chip-val" id="att-total-count">0</div><div class="att-chip-lbl">Total</div></div>
+    </div>
+
+    <!-- Daily list -->
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px;">
+      <div id="attendance-list" style="padding:0 16px;"></div>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:10px;margin-bottom:16px;">
+      <button class="btn btn-primary" style="flex:1;" onclick="saveAttendance()">💾 Save</button>
+      <button class="btn btn-outline" style="flex:1;" onclick="exportAttendanceExcel()">📊 Excel</button>
+    </div>
+
+    <!-- Monthly Summary Panel -->
+    <div style="background:var(--navy);border-radius:14px;padding:14px 16px;margin-bottom:12px;color:white;">
+      <div style="font-size:11px;font-weight:700;opacity:0.7;letter-spacing:0.8px;margin-bottom:10px;">📊 WORKING DAYS SUMMARY</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:12px;">
+        <div><div style="font-size:10px;opacity:0.6;">Upto Last Month</div><div id="wd-upto-last" style="font-size:22px;font-weight:700;margin-top:2px;">—</div></div>
+        <div><div style="font-size:10px;opacity:0.6;">Present Month</div><div id="wd-present-month" style="font-size:22px;font-weight:700;margin-top:2px;">—</div></div>
+        <div style="background:rgba(255,255,255,0.12);border-radius:8px;padding:6px;"><div style="font-size:10px;opacity:0.6;">Total</div><div id="wd-total" style="font-size:22px;font-weight:700;margin-top:2px;color:#86efac;">—</div></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end;">
+        <div style="flex:1;">
+          <div style="font-size:10px;opacity:0.6;margin-bottom:4px;">Select Month</div>
+          <input type="month" id="att-month-picker"
+            style="width:100%;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);
+                   border-radius:8px;color:white;padding:8px 10px;font-size:13px;outline:none;color-scheme:dark;" />
+        </div>
+        <button onclick="calcWorkingDays()"
+          style="padding:10px 14px;background:var(--teal);border:none;border-radius:10px;color:white;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap;">
+          Calculate
+        </button>
+      </div>
+    </div>
+
+    <!-- Per-student summary table -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div class="section-title" id="att-summary-title" style="margin:0;">CLASS ATTENDANCE SUMMARY</div>
+      <button onclick="exportAttSummaryExcel()"
+        style="padding:6px 12px;background:var(--teal);border:none;border-radius:8px;color:white;font-size:11px;font-weight:700;cursor:pointer;touch-action:manipulation;">📊 Export</button>
+    </div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;box-shadow:var(--shadow);">
+      <table id="att-summary-table" style="width:100%;border-collapse:collapse;font-size:11px;background:white;min-width:480px;">
+        <thead>
+          <tr style="background:var(--navy);color:white;">
+            <th style="padding:9px 8px;text-align:left;min-width:110px;position:sticky;left:0;background:var(--navy);">Student</th>
+            <th style="padding:9px 6px;">Upto Last<br>Month</th>
+            <th style="padding:9px 6px;">This<br>Month</th>
+            <th style="padding:9px 6px;">Total<br>Present</th>
+            <th style="padding:9px 6px;">Working<br>Days</th>
+            <th style="padding:9px 6px;">%</th>
+            <th style="padding:9px 6px;min-width:80px;">Remarks</th>
+          </tr>
+        </thead>
+        <tbody id="att-summary-body">
+          <tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted);">Pick a month and tap Calculate</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="height:20px;"></div>
+  </div>
+
+  <!-- TAB 3: EXAMS — REGISTER STYLE -->
+  <div id="tab-exams" class="tab-content" style="padding:0;">
+
+    <!-- Top action bar -->
+    <div style="padding:14px 16px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-secondary btn-sm" onclick="openAddExam()" style="flex:1;">+ New Exam Register</button>
+      <button class="btn btn-outline btn-sm" onclick="exportAllMarksExcel()" style="flex:1;">📊 Export Excel</button>
+    </div>
+
+    <!-- Exam register selector -->
+    <div style="padding:12px 16px 0;">
+      <div id="exam-tabs-row" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;"></div>
+    </div>
+
+    <!-- Register table area -->
+    <div id="exam-register-area" style="padding:12px 0 80px;">
+      <div id="exam-register-empty" class="empty-state">
+        <div class="emoji">📋</div>
+        <p>No exam register yet.<br>Tap <strong>+ New Exam Register</strong> to create one.</p>
+      </div>
+      <div id="exam-register-table"></div>
+    </div>
+  </div>
+
+  <!-- TAB 4: ACCOUNT BOOK -->
+  <div id="tab-accounts" class="tab-content" style="padding:0;">
+    <div style="padding:14px 16px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div style="flex:1;">
+        <select class="form-input" id="acc-student-select" style="appearance:auto;" onchange="loadAccountBook()">
+          <option value="">— Select Student —</option>
+        </select>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="exportAccountExcel()">📊 Excel</button>
+    </div>
+
+    <!-- Balance summary card -->
+    <div id="acc-summary" style="display:none;margin:12px 16px 0;">
+      <div style="background:linear-gradient(135deg,var(--navy),var(--navy-light));border-radius:14px;padding:16px 20px;color:white;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:12px;opacity:0.7;font-weight:600;">CURRENT BALANCE</div>
+          <div id="acc-balance-display" style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;margin-top:2px;">₹0</div>
+          <div id="acc-student-name-display" style="font-size:12px;opacity:0.75;margin-top:2px;"></div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;opacity:0.7;">TOTAL CREDIT</div>
+          <div id="acc-total-credit" style="font-size:16px;font-weight:700;color:#86efac;">₹0</div>
+          <div style="font-size:11px;opacity:0.7;margin-top:6px;">TOTAL DEBIT</div>
+          <div id="acc-total-debit" style="font-size:16px;font-weight:700;color:#fca5a5;">₹0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add transaction bar -->
+    <div id="acc-add-bar" style="display:none;margin:12px 16px 0;">
+      <div class="card" style="padding:14px;">
+        <div class="card-title">➕ Add Transaction</div>
+        <div class="two-col">
+          <div class="form-group">
+            <label class="form-label">Date 📅</label>
+            <input class="form-input" id="acc-txn-date" type="date" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Type</label>
+            <select class="form-input" id="acc-txn-type" style="appearance:auto;" onchange="toggleAccType()">
+              <option value="credit">💚 Credit (Money IN)</option>
+              <option value="debit">❤️ Debit (Money OUT)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount (₹)</label>
+          <input class="form-input" id="acc-txn-amount" type="number" placeholder="Enter amount" inputmode="numeric" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reason / Description</label>
+          <input class="form-input" id="acc-txn-reason" placeholder="e.g. YDP Fee, Books, Parent Visit..." />
+        </div>
+        <button class="btn btn-primary" onclick="addTransaction()">✅ Add Entry</button>
+      </div>
+    </div>
+
+    <!-- Ledger table -->
+    <div id="acc-ledger" style="padding:12px 16px 80px;"></div>
+  </div>
+
+  <!-- Floating Add-Student button (pinned to screen, not the scroll list) -->
+  <button class="fab" id="fab-add-student" onclick="openAddStudent()">+</button>
+</div>
+
+<!-- Add Class Modal -->
+<div class="modal-overlay" id="modal-class">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🏫 Add New Class</div>
+
+    <!-- Class Photo / Icon -->
+    <div class="form-group">
+      <label class="form-label">Class Photo / Icon (Optional)</label>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div id="cls-photo-box" onclick="document.getElementById('cls-photo-input').click()"
+          style="width:72px;height:72px;border-radius:16px;overflow:hidden;flex-shrink:0;
+                 background:var(--teal-light);border:2px dashed var(--teal);
+                 display:flex;align-items:center;justify-content:center;font-size:32px;cursor:pointer;">
+          <img id="cls-photo-preview" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;" />
+          <span id="cls-photo-icon">🏫</span>
+        </div>
+        <div>
+          <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('cls-photo-input').click()">Upload Photo</button>
+          <div style="font-size:11px;color:var(--muted);margin-top:5px;">JPG/PNG • Max 5MB<br>Class group photo or banner</div>
+        </div>
+        <input type="file" id="cls-photo-input" accept="image/*" style="display:none;" onchange="handleClassPhoto(this)" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Class Name</label>
+      <input class="form-input" id="new-class-name" placeholder="e.g. MPC II Year" />
+    </div>
+    <div class="two-col">
+      <div class="form-group">
+        <label class="form-label">Section</label>
+        <input class="form-input" id="new-class-section" placeholder="A" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Academic Year</label>
+        <input class="form-input" id="new-class-year" placeholder="2025-26" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Subject</label>
+      <input class="form-input" id="new-class-subject" placeholder="Chemistry" />
+    </div>
+    <button class="btn btn-primary" onclick="addClass()">Add Class</button>
+    <div style="height:10px;"></div>
+    <button class="btn btn-outline" style="width:100%;" onclick="closeModal('modal-class')">Cancel</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!--  SCREEN: ADD / EDIT STUDENT (FULL PAGE) -->
+<!-- ══════════════════════════════════════════ -->
+<div id="screen-add-student" class="screen">
+  <div class="header" style="background:linear-gradient(135deg,var(--navy) 0%,var(--navy-light) 100%);">
+    <button class="header-back" onclick="cancelStudentForm()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18L9 12L15 6"/></svg>
+    </button>
+    <div style="flex:1;">
+      <div class="header-title" id="stu-form-title">👤 Add Student</div>
+      <div class="header-sub" id="stu-form-sub">Fill in student details</div>
+    </div>
+    <button onclick="saveStudentForm()"
+      style="background:var(--teal);color:white;border:none;padding:10px 16px;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;">
+      ✅ Save
+    </button>
+  </div>
+
+  <div id="stu-form-scroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;touch-action:pan-y;padding:16px 16px 100px;background:var(--bg);">
+
+    <!-- PHOTO -->
+    <div class="card" style="padding:16px;margin-bottom:14px;">
+      <div class="card-title" style="margin-bottom:12px;">📸 Passport Photo <span style="font-size:11px;font-weight:400;color:var(--muted);">(3.5×4.5 cm)</span></div>
+      <div style="display:flex;align-items:flex-start;gap:14px;">
+        <div id="photo-preview-box" onclick="document.getElementById('s-photo').click()"
+          style="width:95px;height:122px;flex-shrink:0;border:2px dashed var(--teal);border-radius:8px;
+                 display:flex;flex-direction:column;align-items:center;justify-content:center;
+                 cursor:pointer;background:#f0faf9;overflow:hidden;">
+          <img id="photo-preview-img" src="" alt="" style="display:none;width:95px;height:122px;object-fit:cover;" />
+          <div id="photo-placeholder" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;text-align:center;">
+            <div style="font-size:26px;">📷</div>
+            <div style="font-size:9px;color:var(--teal);font-weight:700;letter-spacing:0.5px;">TAP TO UPLOAD</div>
+          </div>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:11.5px;color:var(--muted);line-height:1.9;">
+            📐 <b>Size:</b> 3.5×4.5 cm<br>
+            🖼 <b>Format:</b> JPG / PNG<br>
+            📦 <b>Max:</b> 5 MB<br>
+            💡 Light background preferred
+          </div>
+          <button type="button" onclick="document.getElementById('s-photo').click()"
+            class="btn btn-outline btn-sm" style="margin-top:10px;width:100%;">Choose Photo</button>
+          <div id="photo-size-tag" style="display:none;margin-top:5px;font-size:11px;color:var(--teal);font-weight:600;"></div>
+        </div>
+      </div>
+      <input type="file" id="s-photo" accept="image/*" style="display:none;" onchange="handlePhotoUpload(this)" />
+      <div id="photo-error" style="color:var(--red);font-size:12px;margin-top:6px;display:none;"></div>
+    </div>
+
+    <!-- BASIC INFO -->
+    <div class="card" style="padding:16px;margin-bottom:14px;">
+      <div class="card-title" style="margin-bottom:12px;">📋 Basic Information</div>
+      <div class="two-col">
+        <div class="form-group">
+          <label class="form-label">Admission No.</label>
+          <input class="form-input" id="s-admission" placeholder="ADM2025001" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Roll Number</label>
+          <input class="form-input" id="s-roll" placeholder="01" inputmode="numeric" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Student Full Name ✱</label>
+        <input class="form-input" id="s-name" placeholder="Full name as per records" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Father's Name</label>
+        <input class="form-input" id="s-father" placeholder="Father's full name" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mother's Name</label>
+        <input class="form-input" id="s-mother" placeholder="Mother's full name" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date of Birth 📅</label>
+        <input class="form-input" id="s-dob" type="date" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Aadhaar Number</label>
+        <input class="form-input" id="s-aadhaar" placeholder="XXXX XXXX XXXX" maxlength="14" oninput="formatAadhaar(this)" inputmode="numeric" />
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Caste Category</label>
+        <select class="form-input" id="s-caste" style="appearance:auto;">
+          <option value="">-- Select Caste --</option>
+          <option>OC</option><option>BC-A</option><option>BC-B</option>
+          <option>BC-C</option><option>BC-D</option><option>BC-E</option>
+          <option>SC-I</option><option>SC-II</option><option>SC-III</option>
+          <option>ST</option><option>Minority</option><option>Others</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ADDRESS -->
+    <div class="card" style="padding:16px;margin-bottom:14px;">
+      <div class="card-title" style="margin-bottom:12px;">🏠 Residential Address</div>
+      <div class="form-group"><label class="form-label">H.No.</label><input class="form-input" id="s-addr-hno" placeholder="House / Door No." /></div>
+      <div class="form-group"><label class="form-label">Ward / Colony</label><input class="form-input" id="s-addr-ward" placeholder="Ward No. / Colony" /></div>
+      <div class="form-group"><label class="form-label">Village / Town</label><input class="form-input" id="s-addr-village" placeholder="Village or Town" /></div>
+      <div class="two-col">
+        <div class="form-group"><label class="form-label">Mandal</label><input class="form-input" id="s-addr-mandal" placeholder="Mandal" /></div>
+        <div class="form-group"><label class="form-label">District</label><input class="form-input" id="s-addr-district" placeholder="District" /></div>
+      </div>
+      <div class="form-group" style="margin-bottom:0;"><label class="form-label">Pincode</label><input class="form-input" id="s-addr-pin" placeholder="6-digit Pincode" maxlength="6" inputmode="numeric" /></div>
+    </div>
+
+    <!-- HEALTH -->
+    <div class="card" style="padding:16px;margin-bottom:14px;">
+      <div class="card-title" style="margin-bottom:12px;">🩸 Health Details</div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Blood Group</label>
+        <select class="form-input" id="s-blood" style="appearance:auto;">
+          <option value="">-- Select Blood Group --</option>
+          <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+          <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+          <option>A1+</option><option>A1-</option><option>A2+</option><option>A2-</option>
+          <option>A1B+</option><option>A1B-</option><option>A2B+</option><option>A2B-</option>
+          <option>Bombay (Oh)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- BANK DETAILS -->
+    <div class="card" style="padding:16px;margin-bottom:14px;">
+      <div class="card-title" style="margin-bottom:4px;">🏦 Bank Account Details</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">You can add SBI and/or any other bank</p>
+
+      <!-- SBI -->
+      <div style="background:#e6f7f5;border:1.5px solid var(--teal);border-radius:12px;padding:14px;margin-bottom:12px;">
+        <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+          <span style="background:var(--teal);color:white;padding:2px 8px;border-radius:6px;font-size:11px;">SBI</span> SBI Account
+        </div>
+        <div class="form-group">
+          <label class="form-label">SBI A/C Number</label>
+          <input class="form-input" id="s-account" placeholder="SBI Account Number" inputmode="numeric" style="background:white;" />
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">SBI IFSC Code</label>
+          <input class="form-input" id="s-ifsc" placeholder="SBIN0XXXXXX" oninput="this.value=this.value.toUpperCase()" style="background:white;" />
+          <div id="ifsc-info" style="font-size:11px;color:var(--teal);margin-top:3px;"></div>
+        </div>
+      </div>
+
+      <!-- Non-SBI -->
+      <div style="background:#f0f4ff;border:1.5px solid #6366f1;border-radius:12px;padding:14px;">
+        <div style="font-size:12px;font-weight:700;color:#6366f1;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+          <span style="background:#6366f1;color:white;padding:2px 8px;border-radius:6px;font-size:11px;">OTHER</span> Other Bank Account
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bank Name</label>
+          <input class="form-input" id="s-bank2-name" placeholder="e.g. Andhra Bank, Canara Bank..." style="background:white;" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Account Number</label>
+          <input class="form-input" id="s-bank2-account" placeholder="Account Number" inputmode="numeric" style="background:white;" />
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">IFSC Code</label>
+          <input class="form-input" id="s-bank2-ifsc" placeholder="IFSC Code" oninput="this.value=this.value.toUpperCase()" style="background:white;" />
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTACT -->
+    <div class="card" style="padding:16px;margin-bottom:14px;">
+      <div class="card-title" style="margin-bottom:12px;">📞 Contact Details</div>
+      <div class="two-col">
+        <div class="form-group">
+          <label class="form-label">Mobile Number</label>
+          <input class="form-input" id="s-mobile" placeholder="10-digit" type="tel" inputmode="numeric" maxlength="10" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp No.</label>
+          <input class="form-input" id="s-whatsapp" placeholder="10-digit" type="tel" inputmode="numeric" maxlength="10" />
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+        <input type="checkbox" id="same-as-mobile" onchange="copyMobileToWA(this)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--teal);" />
+        <label for="same-as-mobile" style="font-size:13px;color:var(--muted);cursor:pointer;">WhatsApp same as mobile</label>
+      </div>
+    </div>
+
+    <!-- SAVE -->
+    <button class="btn btn-primary" id="student-save-btn" onclick="saveStudentForm()" style="font-size:16px;padding:16px;">✅ Save Student</button>
+    <div style="height:10px;"></div>
+    <button class="btn btn-outline" style="width:100%;" onclick="cancelStudentForm()">Cancel</button>
+    <div style="height:40px;"></div>
+
+  </div><!-- end scroll -->
+</div><!-- end screen-add-student -->
+
+<!-- Create Exam — FULL PAGE -->
+<div id="screen-add-exam" class="screen">
+  <div class="header" style="background:linear-gradient(135deg,var(--navy) 0%,var(--navy-light) 100%);">
+    <button class="header-back" onclick="closeAddExam()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18L9 12L15 6"/></svg>
+    </button>
+    <div style="flex:1;">
+      <div class="header-title">📝 Create Exam</div>
+      <div class="header-sub">New exam register</div>
+    </div>
+    <button onclick="addExam()"
+      style="background:var(--teal);color:white;border:none;padding:10px 16px;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;">
+      ✅ Create
+    </button>
+  </div>
+
+  <div id="exam-form-scroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;touch-action:pan-y;padding:16px 16px 100px;background:var(--bg);">
+
+    <div class="card" style="padding:16px;margin-bottom:14px;">
+      <!-- Exam Name: Preset Buttons + Custom -->
+      <div class="form-group">
+        <label class="form-label">Exam Type — Quick Select</label>
+        <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px;">
+          <button class="exam-preset-btn" onclick="setExamPreset('UT-1')">UT-1</button>
+          <button class="exam-preset-btn" onclick="setExamPreset('UT-2')">UT-2</button>
+          <button class="exam-preset-btn" onclick="setExamPreset('UT-3')">UT-3</button>
+          <button class="exam-preset-btn" onclick="setExamPreset('Quarterly')">Quarterly</button>
+          <button class="exam-preset-btn" onclick="setExamPreset('Half Yearly')">Half Yearly</button>
+          <button class="exam-preset-btn" onclick="setExamPreset('IT-1')">IT-1</button>
+          <button class="exam-preset-btn" onclick="setExamPreset('IT-2')">IT-2</button>
+          <button class="exam-preset-btn" onclick="setExamPreset('IT-3')">IT-3</button>
+          <button class="exam-preset-btn" onclick="setExamPreset('IT-4')">IT-4</button>
+          <button class="exam-preset-btn" onclick="setExamPreset('GT-1')">GT-1</button>
+          <button class="exam-preset-btn" onclick="setExamPreset('GT-2')">GT-2</button>
+          <button class="exam-preset-btn" onclick="setExamPreset('PF')">PF</button>
+          <button class="exam-preset-btn" onclick="setExamPreset('IPE')">IPE</button>
+        </div>
+        <label class="form-label" style="margin-top:4px;">Or Type Custom Exam Name</label>
+        <input class="form-input" id="new-exam-name" placeholder="e.g. Class Test, Revision Test..." />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Exam Date 📅</label>
+        <input class="form-input" id="new-exam-date" type="date" />
+      </div>
+
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Max Marks Per Subject</label>
+        <input class="form-input" id="new-exam-max" placeholder="e.g. 100" type="number" inputmode="numeric" />
+      </div>
+    </div>
+
+    <!-- Subject Selection -->
+    <div class="card" style="padding:16px;margin-bottom:14px;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Subjects for This Exam</label>
+
+        <!-- Quick preset subject groups -->
+        <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;">
+          <button class="exam-preset-btn" onclick="loadSubjectPreset('chemistry')">🧪 Chemistry Only</button>
+          <button class="exam-preset-btn" onclick="loadSubjectPreset('mpc')">MPC Subjects</button>
+          <button class="exam-preset-btn" onclick="loadSubjectPreset('bipc')">BiPC Subjects</button>
+          <button class="exam-preset-btn" onclick="loadSubjectPreset('school')">School (Gen. Science)</button>
+          <button class="exam-preset-btn" onclick="loadSubjectPreset('all')">All Subjects</button>
+        </div>
+
+        <!-- Subject list with toggle checkboxes -->
+        <div id="subject-checklist" style="background:#f8fafc;border:1.5px solid var(--border);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;">
+        </div>
+
+        <!-- Add custom subject -->
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <input class="form-input" id="new-subject-input" placeholder="Add custom subject..." style="flex:1;" />
+          <button class="btn btn-secondary btn-sm" style="flex-shrink:0;" onclick="addCustomSubject()">+ Add</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="addExam()" style="font-size:16px;padding:16px;">✅ Create Exam</button>
+    <div style="height:10px;"></div>
+    <button class="btn btn-outline" style="width:100%;" onclick="closeAddExam()">Cancel</button>
+    <div style="height:40px;"></div>
+
+  </div><!-- end scroll -->
+</div><!-- end screen-add-exam -->
+
+
+<!-- Student Detail FULL SCREEN -->
+<div id="screen-student-detail" class="screen" style="background:var(--bg);">
+  <!-- Header -->
+  <div class="header" style="background:linear-gradient(135deg,var(--navy) 0%,var(--navy-light) 100%);">
+    <button class="header-back" id="std-back-btn" onclick="closeStudentDetail()" title="Back to Students">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18L9 12L15 6"/></svg>
+    </button>
+    <div style="flex:1;">
+      <div class="header-title" id="std-header-name">Student Details</div>
+      <div class="header-sub" id="std-header-sub">Personal Information</div>
+    </div>
+    <!-- Share Button -->
+    <button id="std-share-btn" onclick="openShareMenu()" title="Share / Export"
+      style="width:44px;height:44px;min-width:44px;border:none;border-radius:14px;
+             background:rgba(255,255,255,0.15);backdrop-filter:blur(10px);
+             display:flex;align-items:center;justify-content:center;
+             color:#fff;cursor:pointer;
+             box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 4px 10px rgba(0,0,0,.15);
+             transition:.25s ease;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/>
+        <polyline points="16 6 12 2 8 6"/>
+        <line x1="12" y1="2" x2="12" y2="15"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Content -->
+  <div class="content" style="padding:20px 16px 100px;" id="student-detail-content-screen">
+    <!-- filled by showStudentDetail() -->
+  </div>
+
+  <!-- Bottom Action Buttons -->
+  <div style="position:fixed;bottom:0;left:0;right:0;
+              background:white;padding:14px 16px calc(28px + env(safe-area-inset-bottom));
+              box-shadow:0 -2px 20px rgba(0,0,0,0.1);
+              display:flex;gap:10px;z-index:50;">
+    <button class="btn btn-secondary" style="flex:1;" id="std-edit-btn" onclick="">✏️ Edit Student</button>
+    <button class="btn btn-danger" style="flex:1;" id="std-delete-btn" onclick="">🗑 Delete</button>
+  </div>
+</div>
+
+<!-- Share / Export Bottom Sheet -->
+<div class="modal-overlay" id="modal-share-menu">
+  <div class="modal-sheet" style="padding-bottom:36px;">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📤 Share Student Card</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:18px;">Choose how you'd like to share this student's details</p>
+
+    <button class="btn btn-primary" style="margin-bottom:10px;" onclick="shareAsImage()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Save as Image (JPG/PNG)
+    </button>
+    <button class="btn btn-secondary" style="margin-bottom:10px;" onclick="shareAsPDF()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Export as PDF (A4)
+    </button>
+    <button class="btn btn-outline" style="width:100%;" onclick="closeModal('modal-share-menu')">Cancel</button>
+  </div>
+</div>
+
+<!-- Hidden printable student card for PDF/Image export -->
+<div id="student-print-card" style="display:none;position:fixed;left:-9999px;top:0;width:794px;background:white;padding:0;z-index:-1;font-family:'Inter',sans-serif;"></div>
+
+<!-- Edit Transaction Modal -->
+<div class="modal-overlay" id="modal-edit-txn">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ Edit Transaction</div>
+    <div class="two-col">
+      <div class="form-group">
+        <label class="form-label">Date 📅</label>
+        <input class="form-input" id="edit-txn-date" type="date" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select class="form-input" id="edit-txn-type" style="appearance:auto;">
+          <option value="credit">💚 Credit (Money IN)</option>
+          <option value="debit">❤️ Debit (Money OUT)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Amount (₹)</label>
+      <input class="form-input" id="edit-txn-amount" type="number" placeholder="Enter amount" inputmode="numeric" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Reason / Description</label>
+      <input class="form-input" id="edit-txn-reason" placeholder="e.g. YDP Fee, Books, Parent Visit..." />
+    </div>
+    <input type="hidden" id="edit-txn-sid" />
+    <input type="hidden" id="edit-txn-id" />
+    <button class="btn btn-primary" onclick="saveEditTransaction()">💾 Save Changes</button>
+    <div style="height:10px;"></div>
+    <button class="btn btn-outline" style="width:100%;" onclick="closeModal('modal-edit-txn')">Cancel</button>
+    <div style="height:10px;"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Hidden restore input -->
+<input type="file" id="restore-file-input" accept="application/json,.json,text/plain,application/octet-stream,*/*" style="display:none;" onchange="restoreData(this)" />
+
+<!-- Backup / Restore Modal -->
+<div class="modal-overlay" id="modal-backup">
+  <div class="modal-sheet" style="padding-bottom:32px;">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💾 Backup &amp; Restore Data</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;">Your data is stored only on this device. Download a backup regularly to avoid losing your data.</p>
+
+    <div style="background:#fff7ed;border:1.5px solid #fdba74;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
+      <div style="font-size:12.5px;font-weight:700;color:#c2410c;margin-bottom:6px;">⚠️ Before updating or reinstalling the app</div>
+      <div style="font-size:12px;color:#9a3412;line-height:1.6;">
+        Always tap <b>Download Backup</b> first. After the update, open the app and tap <b>Restore from Backup</b> to bring all your data back.
+      </div>
+    </div>
+
+    <button class="btn btn-primary" style="margin-bottom:10px;" onclick="downloadBackup()">⬇️ Download Backup (.json)</button>
+    <div id="backup-last-info" style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:10px;"></div>
+
+    <button class="btn btn-secondary" style="margin-bottom:14px;" onclick="document.getElementById('restore-file-input').click()">⬆️ Restore from Backup</button>
+
+    <button class="btn btn-outline" style="width:100%;" onclick="closeModal('modal-backup')">Close</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  CUSTOM SAVE DIALOG
+// ═══════════════════════════════════════
+let _saveDialogCallback = null;
+
+function openSaveDialog(defaultName, callback) {
+  _saveDialogCallback = callback;
+  const input = document.getElementById('save-dialog-filename');
+  input.value = defaultName;
+  document.getElementById('modal-save-dialog').style.display = 'flex';
+  setTimeout(() => input.focus(), 100);
+}
+
+function closeSaveDialog() {
+  document.getElementById('modal-save-dialog').style.display = 'none';
+  _saveDialogCallback = null;
+}
+
+function confirmSaveDialog() {
+  const name = document.getElementById('save-dialog-filename').value.trim();
+  if (!name) { showToast('⚠️ Please enter a filename'); return; }
+  document.getElementById('modal-save-dialog').style.display = 'none';
+  if (_saveDialogCallback) _saveDialogCallback(name);
+  _saveDialogCallback = null;
+}
+
+// Universal save function — tries share first, then download with correct filename
+async function universalSave(blob, defaultFilename, mimeType) {
+  // 1️⃣ Try Web Share API (best for APK — opens Files/WhatsApp/Drive)
+  if (navigator.share) {
+    try {
+      const file = new File([blob], defaultFilename, { type: mimeType });
+      await navigator.share({ files: [file], title: defaultFilename });
+      return true;
+    } catch(e) {
+      if (e.name === 'AbortError') return false;
+    }
+  }
+  // 2️⃣ Direct blob download (browser)
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = defaultFilename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1500);
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+
+let state = {
+  teacher: null,
+  classes: [],
+  currentClassId: null,
+  attendance: {},        // class: { classId: { date: { studentId: 'P'|'A'|'S'|'L' } } }
+  houseAttendance: {},   // house: same structure
+  attRemarks: {},        // { classId: { studentId: 'remark' } }
+  exams: {},
+};
+
+const SUBJECTS = ['Telugu','English','Mathematics','Physics','Chemistry','Biology','Social','Hindi','Sanskrit','Computer Science'];
+
+function save() {
+  try {
+    localStorage.setItem('edutrack', JSON.stringify(state));
+  } catch(e) {
+    // localStorage quota exceeded — photos are too large
+    // Try saving without photos as fallback
+    try {
+      const slim = JSON.parse(JSON.stringify(state));
+      slim.classes.forEach(cls => {
+        cls.photo = null; // remove class photos
+        (cls.students || []).forEach(s => {
+          if (s.photo && s.photo.length > 50000) s.photo = null; // remove large student photos
+        });
+      });
+      if (slim.teacher) slim.teacher.photo = null;
+      localStorage.setItem('edutrack', JSON.stringify(slim));
+      showToast('⚠️ Storage full — photos removed to save data. Use smaller photos (under 100KB).');
+    } catch(e2) {
+      showToast('❌ Storage full! Please delete unused data.');
+    }
+  }
+}
+
+function load() {
+  try {
+    const d = localStorage.getItem('edutrack');
+    if (d) state = JSON.parse(d);
+    if (!state.houseAttendance) state.houseAttendance = {};
+    if (!state.attRemarks)      state.attRemarks = {};
+  } catch(e) { console.error('Load error:', e); }
+}
+
+// ═══════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════
+function showScreen(id, direction) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active','anim-in','anim-back');
+    s.style.display = 'none';
+  });
+  const el = document.getElementById(id); if (!el) return;
+  el.style.display = 'flex'; el.classList.add('active');
+  requestAnimationFrame(() => {
+    el.classList.add(direction === 'back' ? 'anim-back' : 'anim-in');
+    setTimeout(() => el.classList.remove('anim-in','anim-back'), 320);
+  });
+  window.scrollTo(0, 0);
+}
+
+function goBack(screen) { showScreen(screen, 'back'); }
+
+function goToProfile() {
+  if (state.teacher) {
+    document.getElementById('t-name').value = state.teacher.name || '';
+    document.getElementById('t-school').value = state.teacher.school || '';
+    document.getElementById('t-subject').value = state.teacher.subject || '';
+    document.getElementById('t-id').value = state.teacher.id || '';
+    document.getElementById('t-mobile').value = state.teacher.mobile || '';
+  }
+  showScreen('screen-splash');
+}
+
+// ═══════════════════════════════════════
+//  TEACHER
+// ═══════════════════════════════════════
+function saveTeacher() {
+  const name = document.getElementById('t-name').value.trim();
+  if (!name) { showToast('Please enter your name'); return; }
+  state.teacher = {
+    name,
+    school: document.getElementById('t-school').value.trim(),
+    subject: document.getElementById('t-subject').value.trim(),
+    id: document.getElementById('t-id').value.trim(),
+    mobile: document.getElementById('t-mobile').value.trim(),
+  };
+  save();
+  loadDashboard();
+  showScreen('screen-dashboard');
+  showToast('Welcome, ' + name + '! 👋');
+}
+
+// ═══════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════
+function loadDashboard() {
+  const t = state.teacher;
+  if (!t) return;
+  document.getElementById('dash-teacher-name').textContent = t.school || 'Your School';
+  document.getElementById('profile-name').textContent = t.name;
+  document.getElementById('profile-school').textContent = t.school || '—';
+  document.getElementById('profile-subject').textContent = '📗 ' + (t.subject || 'Subject');
+  document.getElementById('profile-id').textContent = 'ID: ' + (t.id || '—');
+
+  // Teacher photo
+  const tImg = document.getElementById('teacher-photo-img');
+  const tIcon = document.getElementById('teacher-photo-icon');
+  if (t.photo) {
+    tImg.src = t.photo; tImg.style.display = 'block';
+    if (tIcon) tIcon.style.display = 'none';
+  } else {
+    tImg.style.display = 'none';
+    if (tIcon) tIcon.style.display = 'block';
+  }
+
+  const list  = document.getElementById('class-list');
+  const empty = document.getElementById('class-empty');
+
+  if (state.classes.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  list.innerHTML = state.classes.map(cls => {
+    const photoHtml = cls.photo
+      ? `<img src="${cls.photo}" style="width:52px;height:52px;object-fit:cover;border-radius:14px;flex-shrink:0;" />`
+      : `<div class="class-badge">${cls.name.charAt(0).toUpperCase()}</div>`;
+    return `
+    <div class="class-card-wrap" style="position:relative;margin-bottom:12px;">
+      <div class="class-card" style="margin-bottom:0;" onclick="openClass('${cls.id}')">
+        ${photoHtml}
+        <div class="class-info" style="padding-right:100px;">
+          <div class="class-name">${cls.name}</div>
+          <div class="class-meta">${cls.subject || 'General'} • ${cls.year || ''} • ${cls.students ? cls.students.length : 0} students</div>
+        </div>
+        <div class="class-arrow">›</div>
+      </div>
+      <div style="position:absolute;top:50%;right:12px;transform:translateY(-50%);display:flex;gap:8px;z-index:5;">
+<button onclick="event.stopPropagation();editClass('${cls.id}')" style="background:#0d9e8a;color:#fff;border:none;border-radius:10px;width:38px;height:38px;cursor:pointer;">✏️</button>
+<button onclick="event.stopPropagation();confirmDeleteClass('${cls.id}')" style="background:#ef4444;color:#fff;border:none;border-radius:10px;width:38px;height:38px;cursor:pointer;">🗑️</button>
+</div>
+    </div>`;
+  }).join('');
+}
+
+function handleTeacherPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) { showToast('Photo too large (max 10MB)'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 300;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        const r = Math.min(MAX/w, MAX/h);
+        w = Math.round(w*r); h = Math.round(h*r);
+      }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.75);
+      if (!state.teacher) return;
+      state.teacher.photo = compressed;
+      save();
+      loadDashboard();
+      showToast('Teacher photo updated! 📸');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleClassPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) { showToast('Photo too large (max 10MB)'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 200;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        const r = Math.min(MAX/w, MAX/h);
+        w = Math.round(w*r); h = Math.round(h*r);
+      }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.75);
+      window._pendingClassPhoto = compressed;
+      const prev = document.getElementById('cls-photo-preview');
+      const icon = document.getElementById('cls-photo-icon');
+      if (prev) { prev.src = compressed; prev.style.display = 'block'; }
+      if (icon) icon.style.display = 'none';
+      showToast('Class photo ready ✅');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function confirmDeleteClass(classId) {
+  const cls = state.classes.find(c => c.id === classId);
+  if (!cls) return;
+  const studentCount = cls.students ? cls.students.length : 0;
+  const msg = studentCount > 0
+    ? `Delete "${cls.name}"?\n\n⚠️ This will permanently delete ${studentCount} student records, attendance, exams, and account data.\n\nThis cannot be undone!`
+    : `Delete "${cls.name}"? This cannot be undone.`;
+  if (!confirm(msg)) return;
+  state.classes = state.classes.filter(c => c.id !== classId);
+  // Also clean up related data
+  if (state.attendance[classId]) delete state.attendance[classId];
+  if (state.exams[classId]) delete state.exams[classId];
+  if (state.accounts && state.accounts[classId]) delete state.accounts[classId];
+  save();
+  loadDashboard();
+  showToast(`"${cls.name}" deleted`);
+}
+
+// ═══════════════════════════════════════
+//  CLASSES
+// ═══════════════════════════════════════
+
+function showClassMenu(ev,classId){ ev.stopPropagation(); }
+function renameClass(classId){
+ const cls=state.classes.find(c=>c.id===classId); if(!cls) return;
+ const n=prompt('New class name',cls.name);
+ if(!n) return;
+ cls.name=n; save(); loadDashboard();
+}
+function editClass(classId){
+ const cls=state.classes.find(c=>c.id===classId); if(!cls) return;
+ window.editingClassId=classId;
+ document.getElementById('new-class-name').value=cls.name||'';
+ document.getElementById('new-class-section').value=cls.section||'';
+ document.getElementById('new-class-year').value=cls.year||'';
+ document.getElementById('new-class-subject').value=cls.subject||'';
+ window._pendingClassPhoto=cls.photo||null;
+ openModal('modal-class');
+}
+
+function openAddClass() {
+  window._pendingClassPhoto = null;
+  const prev = document.getElementById('cls-photo-preview');
+  const icon = document.getElementById('cls-photo-icon');
+  if (prev) { prev.src = ''; prev.style.display = 'none'; }
+  if (icon) icon.style.display = 'block';
+  openModal('modal-class');
+}
+
+function addClass() {
+  const name = document.getElementById('new-class-name').value.trim();
+  if (!name) { showToast('Enter class name'); return; }
+  if(window.editingClassId){
+    const cls=state.classes.find(c=>c.id===window.editingClassId);
+    if(cls){
+      cls.name=name;
+      cls.section=document.getElementById('new-class-section').value.trim();
+      cls.year=document.getElementById('new-class-year').value.trim();
+      cls.subject=document.getElementById('new-class-subject').value.trim();
+      if(window._pendingClassPhoto) cls.photo=window._pendingClassPhoto;
+      window.editingClassId=null;
+      save(); closeModal('modal-class'); loadDashboard(); showToast('Class updated');
+      return;
+    }
+  }
+  const cls = {
+    id: 'cls_' + Date.now(),
+    name,
+    section: document.getElementById('new-class-section').value.trim(),
+    year: document.getElementById('new-class-year').value.trim(),
+    subject: document.getElementById('new-class-subject').value.trim(),
+    photo: window._pendingClassPhoto || null,
+    students: [],
+  };
+  state.classes.push(cls);
+  save();
+  closeModal('modal-class');
+  loadDashboard();
+  document.getElementById('new-class-name').value = '';
+  document.getElementById('new-class-section').value = '';
+  document.getElementById('new-class-year').value = '';
+  document.getElementById('new-class-subject').value = '';
+  window._pendingClassPhoto = null;
+  showToast('Class added! ✅');
+}
+
+function openClass(classId) {
+  state.currentClassId = classId;
+  const cls = state.classes.find(c => c.id === classId);
+  if (!cls) return;
+  document.getElementById('class-screen-name').textContent = cls.name;
+  document.getElementById('class-screen-meta').textContent = (cls.subject || '') + (cls.year ? ' • ' + cls.year : '');
+  switchTab('tab-personal', document.querySelector('.tab'));
+  renderStudentList();
+  renderAttendance();
+  renderExams();
+  showScreen('screen-class');
+}
+
+function getClass() {
+  return state.classes.find(c => c.id === state.currentClassId);
+}
+
+// ═══════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════
+function switchTab(tabId, el) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  if (el) el.classList.add('active');
+  else document.querySelector('.tab').classList.add('active');
+  if (tabId === 'tab-accounts') initAccountTab();
+  if (tabId === 'tab-attendance') renderAttendance();
+  // Show the + button only on the Students tab
+  const fab = document.getElementById('fab-add-student');
+  if (fab) fab.classList.toggle('show', tabId === 'tab-personal');
+}
+
+// ═══════════════════════════════════════
+//  STUDENTS
+// ═══════════════════════════════════════
+// ═══════════════════════════════════════
+//  STUDENTS — ADD / EDIT
+// ═══════════════════════════════════════
+
+// Tracks whether we are editing (stores student id) or adding (null)
+window._editingStudentId = null;
+
+function _resetStudentForm() {
+  window._pendingPhoto = null;
+  window._editingStudentId = null;
+  ['s-admission','s-roll','s-name','s-father','s-mother','s-dob','s-aadhaar',
+   's-addr-hno','s-addr-ward','s-addr-village','s-addr-mandal','s-addr-district','s-addr-pin',
+   's-account','s-ifsc','s-bank2-name','s-bank2-account','s-bank2-ifsc',
+   's-mobile','s-whatsapp'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('s-caste').value = '';
+  document.getElementById('s-blood').value = '';
+  const cb = document.getElementById('same-as-mobile'); if(cb) cb.checked = false;
+  document.getElementById('photo-preview-img').style.display = 'none';
+  document.getElementById('photo-preview-img').src = '';
+  document.getElementById('photo-placeholder').style.display = 'flex';
+  const st = document.getElementById('photo-size-tag'); if(st) st.style.display='none';
+  const pe = document.getElementById('photo-error'); if(pe) pe.style.display='none';
+  document.getElementById('s-photo').value = '';
+  const btn = document.getElementById('student-save-btn');
+  if(btn) btn.textContent = '✅ Save Student';
+}
+
+function openAddStudent() {
+  _resetStudentForm();
+  document.getElementById('stu-form-title').textContent = '👤 Add Student';
+  document.getElementById('stu-form-sub').textContent = 'Fill in student details';
+  const sc = document.getElementById('stu-form-scroll'); if(sc) sc.scrollTop = 0;
+  showScreen('screen-add-student');
+}
+
+function cancelStudentForm() {
+  const eid = window._editingStudentId;
+  _resetStudentForm();
+  if (eid) {
+    // Came from editing → go straight back to that student's detail page.
+    // Going via screen-class first caused a visible flash.
+    showStudentDetail(eid);
+  } else {
+    showScreen('screen-class', 'back');
+  }
+}
+
+function editStudent(sid) {
+  const cls = getClass();
+  const s = cls.students.find(st => st.id === sid);
+  if (!s) return;
+  window._editingStudentId = sid;
+  window._pendingPhoto = null;
+  document.getElementById('s-admission').value  = s.admission || '';
+  document.getElementById('s-roll').value        = s.roll      || '';
+  document.getElementById('s-name').value        = s.name      || '';
+  document.getElementById('s-father').value      = s.father    || '';
+  document.getElementById('s-mother').value      = s.mother    || '';
+  document.getElementById('s-dob').value         = s.dob       || '';
+  document.getElementById('s-aadhaar').value     = s.aadhaar   || '';
+  document.getElementById('s-caste').value       = s.caste     || '';
+  document.getElementById('s-blood').value       = s.blood     || '';
+  document.getElementById('s-account').value     = s.account   || '';
+  document.getElementById('s-ifsc').value        = s.ifsc      || '';
+  document.getElementById('s-bank2-name').value    = s.bank2name    || '';
+  document.getElementById('s-bank2-account').value = s.bank2account || '';
+  document.getElementById('s-bank2-ifsc').value    = s.bank2ifsc    || '';
+  document.getElementById('s-mobile').value      = s.mobile    || '';
+  document.getElementById('s-whatsapp').value    = s.whatsapp  || '';
+  const a = s.addressObj || {};
+  document.getElementById('s-addr-hno').value      = a.hno     || '';
+  document.getElementById('s-addr-ward').value     = a.ward    || '';
+  document.getElementById('s-addr-village').value  = a.village || '';
+  document.getElementById('s-addr-mandal').value   = a.mandal  || '';
+  document.getElementById('s-addr-district').value = a.dist    || '';
+  document.getElementById('s-addr-pin').value      = a.pin     || '';
+  const prevImg = document.getElementById('photo-preview-img');
+  const ph = document.getElementById('photo-placeholder');
+  if (s.photo) { prevImg.src=s.photo; prevImg.style.display='block'; if(ph) ph.style.display='none'; }
+  else { prevImg.src=''; prevImg.style.display='none'; if(ph) ph.style.display='flex'; }
+  document.getElementById('s-photo').value = '';
+  const btn = document.getElementById('student-save-btn'); if(btn) btn.textContent='✅ Update Student';
+  document.getElementById('stu-form-title').textContent = '✏️ Edit Student';
+  document.getElementById('stu-form-sub').textContent = s.name || 'Update details';
+  const sc = document.getElementById('stu-form-scroll'); if(sc) sc.scrollTop = 0;
+  showScreen('screen-add-student');
+}
+
+function saveStudentForm() {
+  const name = document.getElementById('s-name').value.trim();
+  if (!name) { showToast('Student name is required ✱'); return; }
+  const cls = getClass(); if (!cls) return;
+  const hno=document.getElementById('s-addr-hno').value.trim();
+  const ward=document.getElementById('s-addr-ward').value.trim();
+  const village=document.getElementById('s-addr-village').value.trim();
+  const mandal=document.getElementById('s-addr-mandal').value.trim();
+  const dist=document.getElementById('s-addr-district').value.trim();
+  const pin=document.getElementById('s-addr-pin').value.trim();
+  const addressObj={hno,ward,village,mandal,dist,pin};
+  const addressStr=[hno,ward,village,mandal,dist,pin].filter(Boolean).join(', ');
+
+  if (window._editingStudentId) {
+    const s = cls.students.find(st => st.id === window._editingStudentId);
+    if (!s) { showToast('Student not found'); return; }
+    s.name=name; s.roll=document.getElementById('s-roll').value.trim();
+    s.admission=document.getElementById('s-admission').value.trim();
+    s.father=document.getElementById('s-father').value.trim();
+    s.mother=document.getElementById('s-mother').value.trim();
+    s.dob=document.getElementById('s-dob').value;
+    s.aadhaar=document.getElementById('s-aadhaar').value.trim();
+    s.caste=document.getElementById('s-caste').value;
+    s.blood=document.getElementById('s-blood').value;
+    s.account=document.getElementById('s-account').value.trim();
+    s.ifsc=document.getElementById('s-ifsc').value.trim().toUpperCase();
+    s.bank2name=document.getElementById('s-bank2-name').value.trim();
+    s.bank2account=document.getElementById('s-bank2-account').value.trim();
+    s.bank2ifsc=document.getElementById('s-bank2-ifsc').value.trim().toUpperCase();
+    s.mobile=document.getElementById('s-mobile').value.trim();
+    s.whatsapp=document.getElementById('s-whatsapp').value.trim();
+    s.addressObj=addressObj; s.addressStr=addressStr;
+    if (window._pendingPhoto) s.photo=window._pendingPhoto;
+    cls.students.sort((a,b)=>(parseInt(a.roll)||0)-(parseInt(b.roll)||0));
+    save();
+    const updatedId = window._editingStudentId;
+    _resetStudentForm();
+    renderStudentList(); renderAttendance(); loadDashboard();
+    showToast('Student updated! ✅');
+    showStudentDetail(updatedId);
+  } else {
+    const student = {
+      id:'stu_'+Date.now(), name,
+      roll:document.getElementById('s-roll').value.trim(),
+      admission:document.getElementById('s-admission').value.trim(),
+      photo:window._pendingPhoto||null,
+      father:document.getElementById('s-father').value.trim(),
+      mother:document.getElementById('s-mother').value.trim(),
+      dob:document.getElementById('s-dob').value,
+      aadhaar:document.getElementById('s-aadhaar').value.trim(),
+      caste:document.getElementById('s-caste').value,
+      addressObj, addressStr,
+      blood:document.getElementById('s-blood').value,
+      account:document.getElementById('s-account').value.trim(),
+      ifsc:document.getElementById('s-ifsc').value.trim().toUpperCase(),
+      bank2name:document.getElementById('s-bank2-name').value.trim(),
+      bank2account:document.getElementById('s-bank2-account').value.trim(),
+      bank2ifsc:document.getElementById('s-bank2-ifsc').value.trim().toUpperCase(),
+      mobile:document.getElementById('s-mobile').value.trim(),
+      whatsapp:document.getElementById('s-whatsapp').value.trim(),
+    };
+    cls.students = cls.students || [];
+    cls.students.push(student);
+    cls.students.sort((a,b)=>(parseInt(a.roll)||0)-(parseInt(b.roll)||0));
+    save();
+    _resetStudentForm();
+    renderStudentList(); renderAttendance(); loadDashboard();
+    showToast('Student added! 🎓');
+    showScreen('screen-class', 'back');
+  }
+}
+
+// Keep addStudent as alias for backwards compatibility
+function addStudent() { saveStudentForm(); }
+
+function handlePhotoUpload(input) {
+  const file = input.files[0];
+  const errEl = document.getElementById('photo-error');
+  const sizeTag = document.getElementById('photo-size-tag');
+  if (errEl) errEl.style.display = 'none';
+  if (sizeTag) sizeTag.style.display = 'none';
+  if (!file) return;
+
+  const sizeMB = file.size / (1024 * 1024);
+  if (sizeMB > 10) {
+    if (errEl) { errEl.textContent = '❌ Photo too large. Maximum 10MB allowed.'; errEl.style.display = 'block'; }
+    input.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    // Compress photo using canvas — resize to passport size max 300x400px, quality 0.7
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX_W = 300, MAX_H = 400;
+      let w = img.width, h = img.height;
+      // Scale down to fit within 300x400
+      if (w > MAX_W || h > MAX_H) {
+        const ratio = Math.min(MAX_W / w, MAX_H / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      // Compress as JPEG quality 0.75 (~50-150KB typically)
+      const compressed = canvas.toDataURL('image/jpeg', 0.75);
+      window._pendingPhoto = compressed;
+
+      // Show preview
+      const prevImg = document.getElementById('photo-preview-img');
+      const placeholder = document.getElementById('photo-placeholder');
+      prevImg.src = compressed;
+      prevImg.style.display = 'block';
+      if (placeholder) placeholder.style.display = 'none';
+
+      // Show size info
+      const kb = Math.round(compressed.length * 0.75 / 1024);
+      if (sizeTag) {
+        sizeTag.textContent = `✅ Photo ready (${kb}KB compressed)`;
+        sizeTag.style.display = 'block';
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function formatAadhaar(input) {
+  let v = input.value.replace(/\D/g,'').substring(0,12);
+  input.value = v.replace(/(\d{4})(?=\d)/g,'$1 ');
+}
+
+function copyMobileToWA(cb) {
+  if (cb.checked) {
+    document.getElementById('s-whatsapp').value = document.getElementById('s-mobile').value;
+  }
+}
+
+function deleteStudent(sid) {
+  if (!confirm('Delete this student? This cannot be undone.')) return;
+  const cls = getClass();
+  cls.students = cls.students.filter(s => s.id !== sid);
+  save();
+  _currentDetailStudentId = null;
+  showScreen('screen-class');
+  renderStudentList();
+  renderAttendance();
+  loadDashboard();
+  showToast('Student deleted');
+}
+
+function renderStudentList() {
+  const cls = getClass();
+  if (!cls) return;
+  const el = document.getElementById('student-list-personal');
+  if (!cls.students || cls.students.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="emoji">👥</div><p>No students yet.<br>Tap <strong>+</strong> to add students.</p></div>`;
+    return;
+  }
+
+  const stats = `
+    <div class="stats-bar">
+      <div class="stat-chip"><div class="stat-val">${cls.students.length}</div><div class="stat-lbl">Total</div></div>
+      <div class="stat-chip"><div class="stat-val">${cls.students.filter(s=>s.blood).length}</div><div class="stat-lbl">Blood Grp</div></div>
+      <div class="stat-chip"><div class="stat-val">${cls.students.filter(s=>s.account).length}</div><div class="stat-lbl">Bank A/C</div></div>
+    </div>`;
+
+  const rows = cls.students.map(s => `
+    <div class="student-row" onclick="showStudentDetail('${s.id}')">
+      <div class="student-avatar" style="overflow:hidden;${s.photo ? 'background:none;' : ''}">
+        ${s.photo
+          ? `<img src="${s.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+          : s.name.charAt(0)}
+      </div>
+      <div class="student-name-info">
+        <div class="student-name">${s.name}</div>
+        <div class="student-roll">
+          ${s.admission ? 'Adm: ' + s.admission + ' • ' : ''}Roll: ${s.roll||'—'}
+          ${s.blood ? ' • ' + s.blood : ''}
+          ${s.caste ? ' • ' + s.caste : ''}
+        </div>
+      </div>
+      <div style="color:var(--muted);font-size:18px;">›</div>
+    </div>
+  `).join('');
+
+  el.innerHTML = stats + `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div class="section-title" style="margin:0;">Student Records</div>
+      <button class="btn btn-sm btn-secondary" onclick="exportStudentsExcel()">📊 Export Excel</button>
+    </div>
+    <div class="card" style="padding:0 16px;">${rows}</div>`;
+}
+
+// Track current student id for share/edit/delete
+let _currentDetailStudentId = null;
+
+function showStudentDetail(sid) {
+  const cls = getClass();
+  const s = cls.students.find(x => x.id === sid);
+  if (!s) return;
+  _currentDetailStudentId = sid;
+
+  const field = (label, val) => val ? `
+    <div style="display:flex;padding:11px 0;border-bottom:1px solid var(--border);align-items:flex-start;gap:8px;">
+      <div style="font-size:12px;font-weight:600;color:var(--muted);width:130px;flex-shrink:0;padding-top:1px;">${label}</div>
+      <div style="font-size:14px;font-weight:500;flex:1;word-break:break-word;">${val}</div>
+    </div>` : '';
+
+  const addr = s.addressObj;
+  const addrHtml = addr ? [
+    addr.hno ? `<b>H.No:</b> ${addr.hno}` : '',
+    addr.ward ? `<b>Ward/Colony:</b> ${addr.ward}` : '',
+    addr.village ? `<b>Village:</b> ${addr.village}` : '',
+    addr.mandal ? `<b>Mandal:</b> ${addr.mandal}` : '',
+    addr.dist ? `<b>District:</b> ${addr.dist}` : '',
+    addr.pin ? `<b>Pincode:</b> ${addr.pin}` : '',
+  ].filter(Boolean).join('<br>') : (s.addressStr || '');
+
+  // Update header
+  document.getElementById('std-header-name').textContent = s.name;
+  document.getElementById('std-header-sub').textContent =
+    [s.admission ? 'Adm: '+s.admission : '', s.roll ? 'Roll: '+s.roll : ''].filter(Boolean).join('  •  ') || 'Student Details';
+
+  // Wire bottom buttons
+  document.getElementById('std-edit-btn').onclick = () => editStudent(sid);
+  document.getElementById('std-delete-btn').onclick = () => deleteStudent(sid);
+
+  // Build content
+  document.getElementById('student-detail-content-screen').innerHTML = `
+    <!-- Hero card -->
+    <div style="background:linear-gradient(135deg,var(--navy) 0%,#1a6b7a 100%);
+                border-radius:20px;padding:24px 20px;margin-bottom:20px;
+                display:flex;align-items:center;gap:18px;">
+      <div style="width:82px;height:82px;border-radius:50%;overflow:hidden;flex-shrink:0;
+          background:rgba(255,255,255,0.15);
+          display:flex;align-items:center;justify-content:center;
+          font-size:30px;color:white;font-weight:700;
+          border:3px solid rgba(255,255,255,0.35);">
+        ${s.photo ? `<img src="${s.photo}" style="width:100%;height:100%;object-fit:cover;" />` : s.name.charAt(0)}
+      </div>
+      <div style="flex:1;">
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;color:white;line-height:1.2;">${s.name}</div>
+        <div style="color:rgba(255,255,255,0.7);font-size:12px;margin-top:4px;">
+          ${s.admission ? '📋 Adm: ' + s.admission : ''} ${s.roll ? '&nbsp;•&nbsp; 🔢 Roll: ' + s.roll : ''}
+        </div>
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
+          ${s.blood ? `<span style="padding:4px 12px;background:#fee2e2;color:#dc2626;border-radius:12px;font-size:12px;font-weight:700;border:1.5px solid #fca5a5;">🩸 ${s.blood}</span>` : ''}
+          ${s.caste ? `<span style="padding:4px 12px;background:#dcfce7;color:#16a34a;border-radius:12px;font-size:12px;font-weight:700;border:1.5px solid #86efac;">${s.caste}</span>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <!-- Details card -->
+    <div class="card" style="padding:4px 16px 8px;">
+      <div class="card-title" style="margin-bottom:4px;padding-top:12px;">👨‍👩‍👦 Family Details</div>
+      ${field('Father\'s Name', s.father)}
+      ${field('Mother\'s Name', s.mother)}
+      ${field('Date of Birth', s.dob ? new Date(s.dob).toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}) : '')}
+      ${field('Aadhaar Number', s.aadhaar)}
+      <div style="height:4px;"></div>
+    </div>
+
+    ${addrHtml ? `
+    <div class="card" style="padding:4px 16px 8px;margin-top:0;">
+      <div class="card-title" style="margin-bottom:4px;padding-top:12px;">🏠 Residential Address</div>
+      <div style="font-size:14px;line-height:2;color:var(--text);padding:6px 0 10px;">${addrHtml}</div>
+    </div>` : ''}
+
+    <div class="card" style="padding:4px 16px 8px;margin-top:0;">
+      <div class="card-title" style="margin-bottom:4px;padding-top:12px;">📞 Contact Details</div>
+      ${field('Mobile Number', s.mobile ? `<a href="tel:${s.mobile}" style="color:var(--teal);text-decoration:none;font-weight:600;">📞 ${s.mobile}</a>` : '')}
+      ${field('WhatsApp Number', s.whatsapp ? `<a href="https://wa.me/91${s.whatsapp}" target="_blank" style="color:#25d366;text-decoration:none;font-weight:600;">💬 ${s.whatsapp}</a>` : '')}
+      <div style="height:4px;"></div>
+    </div>
+
+    ${(s.account || s.ifsc || s.bank2name || s.bank2account) ? `
+    <div class="card" style="padding:4px 16px 8px;margin-top:0;">
+      <div class="card-title" style="margin-bottom:4px;padding-top:12px;">🏦 Bank Details</div>
+      ${(s.account||s.ifsc) ? `
+        <div style="background:#e6f7f5;border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+          <div style="font-size:11px;font-weight:700;color:var(--teal);margin-bottom:6px;">SBI</div>
+          ${field('A/C Number', s.account)}
+          ${field('IFSC', s.ifsc)}
+        </div>` : ''}
+      ${(s.bank2name||s.bank2account) ? `
+        <div style="background:#f0f4ff;border-radius:8px;padding:10px 12px;">
+          <div style="font-size:11px;font-weight:700;color:#6366f1;margin-bottom:6px;">${s.bank2name||'Other Bank'}</div>
+          ${field('A/C Number', s.bank2account)}
+          ${field('IFSC', s.bank2ifsc)}
+        </div>` : ''}
+      <div style="height:4px;"></div>
+    </div>` : ''}
+  `;
+
+  showScreen('screen-student-detail');
+}
+
+function closeStudentDetail() {
+  _currentDetailStudentId = null;
+  showScreen('screen-class', 'back');
+  const tab = document.querySelector('.tab');
+  if (tab) { switchTab('tab-personal', tab); }
+}
+
+function openShareMenu() {
+  openModal('modal-share-menu');
+}
+
+/* ── BUILD PRINT CARD HTML ── */
+function buildPrintCard() {
+  const cls = getClass();
+  const sid = _currentDetailStudentId;
+  if (!sid || !cls) return null;
+  const s = cls.students.find(x => x.id === sid);
+  if (!s) return null;
+
+  const addr = s.addressObj;
+  const addrLines = addr ? [
+    addr.hno ? `H.No: ${addr.hno}` : '',
+    addr.ward ? `Ward/Colony: ${addr.ward}` : '',
+    addr.village ? `Village: ${addr.village}` : '',
+    addr.mandal ? `Mandal: ${addr.mandal}` : '',
+    addr.dist ? `District: ${addr.dist}` : '',
+    addr.pin ? `Pincode: ${addr.pin}` : '',
+  ].filter(Boolean) : [];
+
+  const row = (label, val) => val ? `
+    <tr>
+      <td style="padding:7px 10px;font-size:12px;color:#64748b;font-weight:600;width:150px;border-bottom:1px solid #f1f5f9;white-space:nowrap;">${label}</td>
+      <td style="padding:7px 10px;font-size:13px;font-weight:500;border-bottom:1px solid #f1f5f9;">${val}</td>
+    </tr>` : '';
+
+  const photoHtml = s.photo
+    ? `<img src="${s.photo}" style="width:90px;height:115px;object-fit:cover;border-radius:8px;border:2px solid #e2e8f0;" />`
+    : `<div style="width:90px;height:115px;border-radius:8px;background:linear-gradient(135deg,#1a3a5c,#0d9e8a);
+          display:flex;align-items:center;justify-content:center;font-size:36px;color:white;font-weight:700;">${s.name.charAt(0)}</div>`;
+
+  const schoolName = (state.teacher && state.teacher.school) ? state.teacher.school : 'MJPTBCWR Junior College';
+  const teacherName = (state.teacher && state.teacher.name) ? state.teacher.name : '';
+
+  return `
+    <div style="width:794px;background:white;font-family:'Inter',Arial,sans-serif;padding:0;">
+      <!-- Header Banner -->
+      <div style="background:linear-gradient(135deg,#1a3a5c 0%,#1a6b7a 100%);padding:22px 32px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:22px;font-weight:700;color:white;letter-spacing:0.5px;">📚 EduTrack</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.75);margin-top:3px;">${schoolName}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:rgba(255,255,255,0.6);">Student Identity Card</div>
+          <div style="font-size:12px;color:white;margin-top:2px;">${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'})}</div>
+        </div>
+      </div>
+
+      <!-- Student Hero -->
+      <div style="background:#f8fafc;padding:24px 32px;display:flex;align-items:flex-start;gap:24px;border-bottom:2px solid #e2e8f0;">
+        ${photoHtml}
+        <div style="flex:1;">
+          <div style="font-size:26px;font-weight:700;color:#1a3a5c;line-height:1.2;">${s.name}</div>
+          <div style="font-size:13px;color:#64748b;margin-top:6px;">
+            ${s.admission ? '📋 Admission No: <b>' + s.admission + '</b>' : ''}
+            ${s.admission && s.roll ? '&nbsp;&nbsp;|&nbsp;&nbsp;' : ''}
+            ${s.roll ? '🔢 Roll No: <b>' + s.roll + '</b>' : ''}
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+            ${s.blood ? `<span style="padding:4px 12px;background:#fee2e2;color:#dc2626;border-radius:20px;font-size:12px;font-weight:700;">🩸 ${s.blood}</span>` : ''}
+            ${s.caste ? `<span style="padding:4px 12px;background:#e6f7f5;color:#0d9e8a;border-radius:20px;font-size:12px;font-weight:700;">${s.caste}</span>` : ''}
+            ${cls.name ? `<span style="padding:4px 12px;background:#dbeafe;color:#1d4ed8;border-radius:20px;font-size:12px;font-weight:700;">🏫 ${cls.name}</span>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <!-- Details Table -->
+      <div style="padding:24px 32px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td colspan="2" style="padding:0 0 8px;font-size:13px;font-weight:700;color:#1a3a5c;text-transform:uppercase;letter-spacing:0.8px;border-bottom:2px solid #1a3a5c;margin-bottom:4px;">👨‍👩‍👦 Family &amp; Personal Details</td></tr>
+          ${row("Father's Name", s.father)}
+          ${row("Mother's Name", s.mother)}
+          ${row("Date of Birth", s.dob ? new Date(s.dob).toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}) : '')}
+          ${row("Aadhaar Number", s.aadhaar)}
+          ${addrLines.length ? `<tr><td style="padding:7px 10px 2px;font-size:12px;color:#64748b;font-weight:600;border-bottom:1px solid #f1f5f9;">Residential Address</td><td style="padding:7px 10px 2px;font-size:13px;border-bottom:1px solid #f1f5f9;">${addrLines.join('<br>')}</td></tr>` : ''}
+        </table>
+
+        <table style="width:100%;border-collapse:collapse;margin-top:18px;">
+          <tr><td colspan="2" style="padding:0 0 8px;font-size:13px;font-weight:700;color:#1a3a5c;text-transform:uppercase;letter-spacing:0.8px;border-bottom:2px solid #1a3a5c;">📞 Contact &amp; Bank Details</td></tr>
+          ${row("Mobile Number", s.mobile)}
+          ${row("WhatsApp Number", s.whatsapp)}
+          ${row("SBI A/C Number", s.account)}
+          ${row("IFSC Code", s.ifsc)}
+        </table>
+      </div>
+
+      <!-- Footer -->
+      <div style="background:#f0f4f8;padding:14px 32px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e2e8f0;">
+        <div style="font-size:11px;color:#94a3b8;">Generated by EduTrack • ${schoolName}</div>
+        ${teacherName ? `<div style="font-size:11px;color:#94a3b8;">Teacher: ${teacherName}</div>` : ''}
+      </div>
+    </div>`;
+}
+
+async function shareAsImage() {
+  closeModal('modal-share-menu');
+  showToast('📸 Preparing image…');
+
+  if (!window.html2canvas) {
+    await new Promise((res, rej) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      sc.onload = res; sc.onerror = rej;
+      document.head.appendChild(sc);
+    });
+  }
+
+  const card = document.getElementById('student-print-card');
+  card.innerHTML = buildPrintCard();
+  card.style.display = 'block';
+
+  try {
+    const canvas = await html2canvas(card, {
+      scale: 2, useCORS: true, allowTaint: true,
+      backgroundColor: '#ffffff', width: 794,
+    });
+    card.style.display = 'none';
+
+    const cls = getClass();
+    const sid = _currentDetailStudentId;
+    const s = cls && cls.students.find(x => x.id === sid);
+    const fname = (s ? s.name.replace(/\s+/g,'_') : 'Student') + '_EduTrack.png';
+
+    canvas.toBlob(async (blob) => {
+      const ok = await universalSave(blob, fname, 'image/png');
+      if (ok) showToast('✅ Image saved!');
+    }, 'image/png');
+
+  } catch(e) {
+    card.style.display = 'none';
+    showToast('❌ Could not generate image: ' + e.message);
+  }
+}
+
+async function shareAsPDF() {
+  closeModal('modal-share-menu');
+  showToast('📄 Preparing PDF…');
+
+  if (!window.html2canvas) {
+    await new Promise((res, rej) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      sc.onload = res; sc.onerror = rej;
+      document.head.appendChild(sc);
+    });
+  }
+  if (!window.jspdf) {
+    await new Promise((res, rej) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      sc.onload = res; sc.onerror = rej;
+      document.head.appendChild(sc);
+    });
+  }
+
+  const card = document.getElementById('student-print-card');
+  card.innerHTML = buildPrintCard();
+  card.style.display = 'block';
+
+  try {
+    const canvas = await html2canvas(card, {
+      scale: 2, useCORS: true, allowTaint: true,
+      backgroundColor: '#ffffff', width: 794,
+    });
+    card.style.display = 'none';
+
+    const cls = getClass();
+    const sid = _currentDetailStudentId;
+    const s = cls && cls.students.find(x => x.id === sid);
+    const fname = (s ? s.name.replace(/\s+/g,'_') : 'Student') + '_EduTrack.pdf';
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = 210, pageH = 297;
+    const imgH = (canvas.height / canvas.width) * pageW;
+    const yPos = imgH < pageH ? (pageH - imgH) / 2 : 0;
+    pdf.addImage(imgData, 'JPEG', 0, yPos, pageW, Math.min(imgH, pageH));
+
+    const pdfBlob = pdf.output('blob');
+    const ok = await universalSave(pdfBlob, fname, 'application/pdf');
+    if (ok) showToast('✅ PDF saved!');
+
+  } catch(e) {
+    card.style.display = 'none';
+    showToast('❌ Could not generate PDF: ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════
+//  ATTENDANCE — CLASS & HOUSE
+// ═══════════════════════════════════════
+let _attType = 'class';
+
+function switchAttType(type) {
+  _attType = type;
+  const cb = document.getElementById('att-btn-class');
+  const hb = document.getElementById('att-btn-house');
+  const desc = document.getElementById('att-type-desc');
+  const title = document.getElementById('att-summary-title');
+  if (type === 'class') {
+    cb.style.background = 'var(--navy)'; cb.style.color = 'white';
+    hb.style.background = 'transparent'; hb.style.color = 'var(--navy)';
+    if (desc) desc.textContent = 'Class Attendance — Sundays/Holidays not counted';
+    if (title) title.textContent = 'CLASS ATTENDANCE SUMMARY';
+  } else {
+    hb.style.background = '#5b21b6'; hb.style.color = 'white';
+    cb.style.background = 'transparent'; cb.style.color = 'var(--navy)';
+    if (desc) desc.textContent = 'House Attendance — All working days including weekends';
+    if (title) title.textContent = 'HOUSE ATTENDANCE SUMMARY';
+  }
+  renderAttendance();
+}
+
+function renderAttendance() {
+  const cls = getClass();
+  if (!cls) return;
+  const dateEl = document.getElementById('att-date');
+  if (!dateEl) return;
+  if (!dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+  dateEl.onchange = renderAttendance;
+  const date = dateEl.value;
+  const store = _attType === 'class' ? state.attendance : (state.houseAttendance || {});
+  const clsAtt = store[cls.id] || {};
+  const dayAtt = clsAtt[date] || {};
+
+  if (!cls.students || cls.students.length === 0) {
+    document.getElementById('attendance-list').innerHTML = `<div class="empty-state"><div class="emoji">👥</div><p>Add students first.</p></div>`;
+    return;
+  }
+
+  let present=0, absent=0, sick=0, leave=0;
+  cls.students.forEach(s => {
+    const st = dayAtt[s.id];
+    if(st==='P') present++; else if(st==='A') absent++; else if(st==='S') sick++; else if(st==='L') leave++;
+  });
+  document.getElementById('att-present-count').textContent = present;
+  document.getElementById('att-absent-count').textContent  = absent;
+  document.getElementById('att-sick-count').textContent    = sick;
+  document.getElementById('att-leave-count').textContent   = leave;
+  document.getElementById('att-total-count').textContent   = cls.students.length;
+
+  document.getElementById('attendance-list').innerHTML = cls.students.map(s => {
+    const status = dayAtt[s.id] || '';
+    return `<div class="student-row">
+      <div class="student-avatar" style="${s.photo?'overflow:hidden;background:none;':''}">${s.photo?`<img src="${s.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:(s.name||'?').charAt(0)}</div>
+      <div class="student-name-info"><div class="student-name">${s.name}</div><div class="student-roll">Roll: ${s.roll||'—'}</div></div>
+      <div class="att-toggle-4">
+        <button class="att-btn4 p ${status==='P'?'active':''}" onclick="markAtt('${s.id}','P','${date}')">P</button>
+        <div class="att-divider"></div>
+        <button class="att-btn4 a ${status==='A'?'active':''}" onclick="markAtt('${s.id}','A','${date}')">A</button>
+        <div class="att-divider"></div>
+        <button class="att-btn4 s ${status==='S'?'active':''}" onclick="markAtt('${s.id}','S','${date}')">S</button>
+        <div class="att-divider"></div>
+        <button class="att-btn4 l ${status==='L'?'active':''}" onclick="markAtt('${s.id}','L','${date}')">L</button>
+      </div>
+    </div>`;
+  }).join('');
+  const mp = document.getElementById('att-month-picker');
+  if (mp && mp.value) calcWorkingDays();
+}
+
+function markAtt(studentId, status, date) {
+  const cls = getClass();
+  if (_attType === 'class') {
+    if (!state.attendance[cls.id]) state.attendance[cls.id] = {};
+    if (!state.attendance[cls.id][date]) state.attendance[cls.id][date] = {};
+    state.attendance[cls.id][date][studentId] = status;
+  } else {
+    if (!state.houseAttendance) state.houseAttendance = {};
+    if (!state.houseAttendance[cls.id]) state.houseAttendance[cls.id] = {};
+    if (!state.houseAttendance[cls.id][date]) state.houseAttendance[cls.id][date] = {};
+    state.houseAttendance[cls.id][date][studentId] = status;
+  }
+  renderAttendance();
+}
+
+function saveAttendance() { save(); showToast('Attendance saved! ✅'); }
+
+function calcWorkingDays() {
+  const cls = getClass(); if (!cls || !cls.students || !cls.students.length) return;
+  const mp = document.getElementById('att-month-picker'); if (!mp || !mp.value) { showToast('Select a month first'); return; }
+  const selMonth = mp.value;
+  const store = _attType === 'class' ? state.attendance : (state.houseAttendance||{});
+  const clsAtt = store[cls.id] || {};
+  const allDays = Object.keys(clsAtt);
+  const uptoLast = allDays.filter(d => d.substring(0,7) < selMonth);
+  const thisMth  = allDays.filter(d => d.substring(0,7) === selMonth);
+  const countWD  = days => days.filter(d => Object.keys(clsAtt[d]||{}).length > 0).length;
+  const wdU = countWD(uptoLast), wdP = countWD(thisMth), wdT = wdU + wdP;
+  document.getElementById('wd-upto-last').textContent     = wdU;
+  document.getElementById('wd-present-month').textContent = wdP;
+  document.getElementById('wd-total').textContent         = wdT;
+  const remarks = (state.attRemarks||{})[cls.id] || {};
+
+  const rows = cls.students.map((s, idx) => {
+    const cp = days => days.filter(d => { const st=(clsAtt[d]||{})[s.id]; return st==='P'||st==='S'; }).length;
+    const pu=cp(uptoLast), pp=cp(thisMth), pt=pu+pp;
+    const pct = wdT>0 ? Math.round((pt/wdT)*100) : 0;
+    const pc = pct>=75?'#16a34a':pct>=60?'#d97706':'#dc2626';
+    const bg = idx%2===0?'#fff':'#f8fafc';
+    return `<tr style="background:${bg};">
+      <td style="padding:7px 8px;font-weight:600;font-size:11px;position:sticky;left:0;background:${bg};border-right:2px solid var(--teal);">
+        ${s.name}<br><span style="color:var(--muted);font-size:10px;">Roll: ${s.roll||'—'}</span></td>
+      <td style="padding:7px 5px;text-align:center;font-weight:700;">${pu}</td>
+      <td style="padding:7px 5px;text-align:center;font-weight:700;">${pp}</td>
+      <td style="padding:7px 5px;text-align:center;font-weight:700;color:var(--navy);">${pt}</td>
+      <td style="padding:7px 5px;text-align:center;">${wdT}</td>
+      <td style="padding:7px 5px;text-align:center;font-weight:700;color:${pc};">${pct}%</td>
+      <td style="padding:5px;"><input value="${remarks[s.id]||''}" onchange="saveAttRemark('${s.id}',this.value)"
+        style="width:100%;border:1px solid var(--border);border-radius:6px;padding:3px 5px;font-size:10px;outline:none;" placeholder="Remarks..." /></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('att-summary-body').innerHTML = rows || '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--muted);">No data yet</td></tr>';
+  const totP = cls.students.reduce((sum,s)=>{
+    const cp=d=>{const st=(clsAtt[d]||{})[s.id];return st==='P'||st==='S';};
+    return sum+[...uptoLast,...thisMth].filter(cp).length;
+  },0);
+  const avg = wdT>0&&cls.students.length>0 ? Math.round((totP/(wdT*cls.students.length))*100) : 0;
+  showToast(`Class avg: ${avg}% | Working days: ${wdT}`);
+}
+
+function saveAttRemark(sid, val) {
+  const cls=getClass(); if(!state.attRemarks) state.attRemarks={};
+  if(!state.attRemarks[cls.id]) state.attRemarks[cls.id]={};
+  state.attRemarks[cls.id][sid]=val; save();
+}
+
+function exportAttSummaryExcel() {
+  const cls=getClass(); if(!cls) return;
+  const mp=document.getElementById('att-month-picker'); const selMonth=mp?mp.value:'';
+  const store=_attType==='class'?state.attendance:(state.houseAttendance||{});
+  const clsAtt=store[cls.id]||{};
+  const allDays=Object.keys(clsAtt);
+  const uptoLast=allDays.filter(d=>selMonth?d.substring(0,7)<selMonth:true);
+  const thisMth=selMonth?allDays.filter(d=>d.substring(0,7)===selMonth):[];
+  const countWD=days=>days.filter(d=>Object.keys(clsAtt[d]||{}).length>0).length;
+  const wdU=countWD(uptoLast),wdP=countWD(thisMth),wdT=wdU+wdP;
+  const remarks=(state.attRemarks||{})[cls.id]||{};
+  const typeLabel=_attType==='class'?'Class':'House';
+  const wb=XLSX.utils.book_new();
+  const hdr=['S.No.','Student','Roll','Upto Last Month','This Month','Total Present','Working Days','%','Remarks'];
+  const rows=cls.students.map((s,i)=>{
+    const cp=days=>days.filter(d=>{const st=(clsAtt[d]||{})[s.id];return st==='P'||st==='S';}).length;
+    const pu=cp(uptoLast),pp=cp(thisMth),pt=pu+pp;
+    const pct=wdT>0?Math.round((pt/wdT)*100)+'%':'—';
+    return [i+1,s.name,s.roll||'',pu,pp,pt,wdT,pct,remarks[s.id]||''];
+  });
+  const ws=XLSX.utils.aoa_to_sheet([[`${cls.name} — ${typeLabel} Attendance — ${selMonth||'All'}`],hdr,...rows]);
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:8}}];
+  ws['!cols']=[{wch:5},{wch:22},{wch:6},{wch:14},{wch:12},{wch:12},{wch:12},{wch:8},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,ws,typeLabel+'_Summary');
+  xlsxDownload(wb,`${cls.name}_${typeLabel}_Attendance_${selMonth||'All'}.xlsx`);
+  showToast('Attendance exported! 📊');
+}
+
+// ═══════════════════════════════════════
+//  BACKUP & RESTORE
+// ═══════════════════════════════════════
+function openBackup() {
+  const last = localStorage.getItem('edutrack_backup_ts');
+  const el = document.getElementById('backup-last-info');
+  if (el) el.textContent = last ? `Last backup: ${last}` : 'No backup taken yet';
+  openModal('modal-backup');
+}
+
+async function downloadBackup() {
+  const data = JSON.stringify(state, null, 2);
+  const now  = new Date();
+  const stamp = now.toISOString().slice(0,10);
+  const fname = `EduTrack_Backup_${stamp}.json`;
+  const ts = now.toLocaleString('en-IN');
+  const blob = new Blob([data], { type: 'application/octet-stream' });
+
+  const ok = await universalSave(blob, fname, 'application/octet-stream');
+  if (ok) {
+    localStorage.setItem('edutrack_backup_ts', ts);
+    const el = document.getElementById('backup-last-info');
+    if (el) el.textContent = `Last backup: ${ts}`;
+    showToast('✅ Backup saved!');
+  }
+}
+
+function restoreData(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const r = JSON.parse(e.target.result);
+      if (!r.classes || !Array.isArray(r.classes)) { showToast('❌ Invalid backup file'); return; }
+      const sc = r.classes.reduce((n,c)=>n+(c.students||[]).length,0);
+      if (!confirm(`Restore backup?\n\nThis replaces ALL current data.\n\nClasses: ${r.classes.length} | Students: ${sc}\n\nContinue?`)) return;
+      state = r;
+      if (!state.houseAttendance) state.houseAttendance={};
+      if (!state.attRemarks)      state.attRemarks={};
+      save(); loadDashboard(); showScreen('screen-dashboard');
+      closeModal('modal-backup'); showToast('✅ Data restored successfully!');
+    } catch(err) { showToast('❌ Could not read backup file'); }
+  };
+  reader.readAsText(file); input.value='';
+}
+
+
+// ═══════════════════════════════════════
+//  EXAMS — REGISTER STYLE (like Excel)
+// ═══════════════════════════════════════
+
+let _activeExamId = null;
+
+// All 13 exam columns matching your Excel
+const EXAM_COLUMNS = ['UT-1','UT-2','QUARTERLY','UT-3','HALF YEARLY','IT-1','IT-2','IT-3','IT-4','GT-1','GT-2','PF','IPE'];
+
+const SUBJECT_PRESETS = {
+  chemistry: ['Chemistry'],
+  mpc: ['Mathematics', 'Physics', 'Chemistry', 'English', 'Telugu'],
+  bipc: ['Botany', 'Zoology', 'Chemistry', 'Physics', 'English', 'Telugu'],
+  school: ['General Science', 'Mathematics', 'Social Studies', 'English', 'Telugu', 'Hindi'],
+  all: ['Telugu', 'English', 'Mathematics', 'Physics', 'Chemistry', 'Botany', 'Zoology', 'Social Studies', 'Hindi', 'Sanskrit', 'Computer Science', 'General Science'],
+};
+
+let _examSubjects = ['Chemistry'];
+
+function openAddExam() {
+  _examSubjects = ['Chemistry'];
+  renderSubjectChecklist();
+  document.getElementById('new-exam-name').value = '';
+  document.getElementById('new-exam-date').value = '';
+  document.getElementById('new-exam-max').value = '';
+  document.getElementById('new-subject-input').value = '';
+  document.querySelectorAll('.exam-preset-btn').forEach(b => b.classList.remove('active'));
+  const sc = document.getElementById('exam-form-scroll'); if(sc) sc.scrollTop = 0;
+  showScreen('screen-add-exam');
+}
+
+function closeAddExam() {
+  showScreen('screen-class', 'back');
+  const examTab = document.querySelectorAll('.tab')[2];
+  if (examTab) switchTab('tab-exams', examTab);
+}
+
+function setExamPreset(name) {
+  document.getElementById('new-exam-name').value = name;
+  document.querySelectorAll('.exam-preset-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim() === name);
+  });
+}
+
+function loadSubjectPreset(key) {
+  _examSubjects = [...SUBJECT_PRESETS[key]];
+  renderSubjectChecklist();
+  showToast('Subjects loaded ✅');
+}
+
+function addCustomSubject() {
+  const inp = document.getElementById('new-subject-input');
+  const val = inp.value.trim();
+  if (!val) return;
+  if (_examSubjects.includes(val)) { showToast('Already added'); return; }
+  _examSubjects.push(val);
+  inp.value = '';
+  renderSubjectChecklist();
+}
+
+function removeSubjectFromList(sub) {
+  _examSubjects = _examSubjects.filter(s => s !== sub);
+  renderSubjectChecklist();
+}
+
+function renderSubjectChecklist() {
+  const el = document.getElementById('subject-checklist');
+  if (!el) return;
+  if (_examSubjects.length === 0) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:6px;">No subjects. Use presets or add custom.</div>`;
+    return;
+  }
+  el.innerHTML = _examSubjects.map((sub, i) => `
+    <div class="subject-check-row">
+      <input type="checkbox" id="schk_${i}" checked />
+      <label for="schk_${i}">${sub}</label>
+      <button class="del-sub" onclick="removeSubjectFromList('${sub}')">✕</button>
+    </div>`).join('');
+}
+
+function addExam() {
+  const name = document.getElementById('new-exam-name').value.trim();
+  if (!name) { showToast('Enter or select exam name'); return; }
+
+  const checklist = document.getElementById('subject-checklist');
+  const checkboxes = checklist.querySelectorAll('input[type=checkbox]');
+  const selectedSubjects = [];
+  checkboxes.forEach((cb, i) => { if (cb.checked) selectedSubjects.push(_examSubjects[i]); });
+  if (selectedSubjects.length === 0) { showToast('Select at least one subject'); return; }
+
+  const cls = getClass();
+  if (!state.exams[cls.id]) state.exams[cls.id] = [];
+
+  const exam = {
+    id: 'exam_' + Date.now(),
+    name,
+    date: document.getElementById('new-exam-date').value,
+    maxMarks: parseInt(document.getElementById('new-exam-max').value) || 100,
+    subjects: selectedSubjects,
+    // marks[studentId][examCol][subject] = mark
+    marks: {},
+  };
+  state.exams[cls.id].push(exam);
+  _activeExamId = exam.id;
+  save();
+  showScreen('screen-class', 'back');
+  const examTab = document.querySelectorAll('.tab')[2];
+  if (examTab) switchTab('tab-exams', examTab);
+  renderExams();
+  showToast('Exam register created! 📋');
+}
+
+// ── RENDER REGISTER ──────────────────────
+function renderExams() {
+  const cls = getClass();
+  if (!cls) return;
+  const exams = state.exams[cls.id] || [];
+
+  // Exam selector tabs
+  const tabsRow = document.getElementById('exam-tabs-row');
+  const empty   = document.getElementById('exam-register-empty');
+  const tableEl = document.getElementById('exam-register-table');
+
+  if (!tabsRow || !empty || !tableEl) return;
+
+  if (exams.length === 0) {
+    tabsRow.innerHTML = '';
+    empty.style.display = 'block';
+    tableEl.innerHTML = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Auto-select first if none selected
+  if (!_activeExamId || !exams.find(e => e.id === _activeExamId)) {
+    _activeExamId = exams[0].id;
+  }
+
+  tabsRow.innerHTML = exams.map(e => `
+    <button class="exam-reg-tab ${e.id === _activeExamId ? 'active' : ''}"
+      onclick="switchExamRegister('${e.id}')">
+      📋 ${e.name}
+    </button>`).join('');
+
+  const exam = exams.find(e => e.id === _activeExamId);
+  if (exam) renderRegisterTable(exam, cls);
+}
+
+function switchExamRegister(examId) {
+  _activeExamId = examId;
+  renderExams();
+}
+
+function renderRegisterTable(exam, cls) {
+  const students = cls.students || [];
+  const tableEl = document.getElementById('exam-register-table');
+  const cols = EXAM_COLUMNS; // always all 13 columns
+
+  // Build header
+  const headerCells = cols.map(c => `<th>${c}</th>`).join('');
+  const totCols = exam.subjects.length > 1
+    ? `<th style="background:#1a4b7a;">TOTAL</th><th style="background:#1a4b7a;">%</th><th style="background:#1a4b7a;">GRADE</th>`
+    : `<th style="background:#1a4b7a;">TOTAL</th><th style="background:#1a4b7a;">%</th><th style="background:#1a4b7a;">GRADE</th>`;
+
+  // Build rows
+  const rows = students.map((s, idx) => {
+    const cells = cols.map(col => {
+      // marks[studentId][col] = value (single subject) or object per subject
+      const val = (exam.marks[s.id] || {})[col];
+      const displayVal = (val !== undefined && val !== null && val !== '') ? val : '';
+      return `<td>
+        <input class="mark-input" type="number" min="0" max="${exam.maxMarks}"
+          value="${displayVal}" placeholder="—"
+          onchange="saveRegisterMark('${exam.id}','${s.id}','${col}',this.value)"
+          onfocus="this.select()"
+        />
+      </td>`;
+    }).join('');
+
+    // Calculate totals across all columns that have marks
+    const allMarks = cols.map(c => (exam.marks[s.id] || {})[c]).filter(v => v !== undefined && v !== '' && v !== null);
+    const total = allMarks.length > 0 ? allMarks.reduce((a,b) => a + parseFloat(b), 0) : null;
+    const maxPossible = allMarks.length * exam.maxMarks;
+    const pct = total !== null ? Math.round((total / maxPossible) * 100) : null;
+    const grade = pct === null ? '—' : pct >= 90 ? 'A+' : pct >= 80 ? 'A' : pct >= 70 ? 'B+' : pct >= 60 ? 'B' : pct >= 50 ? 'C' : pct >= 35 ? 'D' : 'F';
+    const gradeColor = pct === null ? '' : pct >= 70 ? 'color:#16a34a' : pct >= 50 ? 'color:#d97706' : 'color:#ef4444';
+
+    return `<tr>
+      <td class="col-sno">${idx + 1}</td>
+      <td class="col-name">${s.name}</td>
+      ${cells}
+      <td class="total-cell">${total !== null ? total.toFixed(0) : '—'}</td>
+      <td class="pct-cell">${pct !== null ? pct + '%' : '—'}</td>
+      <td class="grade-cell" style="${gradeColor}">${grade}</td>
+    </tr>`;
+  }).join('');
+
+  // Empty row placeholder if no students
+  const bodyContent = students.length === 0
+    ? `<tr><td colspan="${cols.length + 5}" style="text-align:center;padding:24px;color:var(--muted);">Add students in the Students tab first</td></tr>`
+    : rows;
+
+  tableEl.innerHTML = `
+    <!-- Register info bar -->
+    <div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;color:var(--navy);">📋 ${exam.name}</div>
+        <div style="font-size:12px;color:var(--muted);">
+          ${cls.name} • ${exam.subjects.join(', ')} • Max: ${exam.maxMarks} per exam
+          ${exam.date ? ' • ' + exam.date : ''}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-sm btn-outline" onclick="deleteExam('${exam.id}')" style="font-size:12px;color:var(--red);border-color:var(--red);">🗑 Delete</button>
+        <button class="btn btn-sm btn-secondary" onclick="exportAllMarksExcel()" style="font-size:12px;">📊 Excel</button>
+      </div>
+    </div>
+
+    <!-- Scrollable register table -->
+    <div class="register-wrap">
+      <table class="register-table">
+        <tr class="title-row">
+          <td colspan="${cols.length + 5}">
+            ${cls.name} &nbsp;@&nbsp; ${exam.subjects.join(' / ')} — INTERNAL MARKS &nbsp;(${new Date().getFullYear()})
+          </td>
+        </tr>
+        <tr class="header-row">
+          <th class="col-sno">S.NO.</th>
+          <th class="col-name">STUDENT NAME</th>
+          ${headerCells}
+          <th style="background:#1a4b7a;">TOTAL</th>
+          <th style="background:#1a4b7a;">%</th>
+          <th style="background:#1a4b7a;">GRADE</th>
+        </tr>
+        ${bodyContent}
+      </table>
+    </div>
+    <div style="padding:8px 16px;font-size:11px;color:var(--muted);">
+      💡 Scroll right to see all exam columns. Tap any cell to enter marks.
+    </div>`;
+}
+
+function saveRegisterMark(examId, studentId, col, value) {
+  const cls = getClass();
+  const exam = (state.exams[cls.id] || []).find(e => e.id === examId);
+  if (!exam) return;
+  if (!exam.marks[studentId]) exam.marks[studentId] = {};
+  const v = parseFloat(value);
+  exam.marks[studentId][col] = isNaN(v) ? '' : Math.min(v, exam.maxMarks);
+  save();
+  // Refresh only totals without re-rendering whole table (too slow)
+  renderExams();
+}
+
+function deleteExam(examId) {
+  if (!confirm('Delete this exam register? All marks will be lost.')) return;
+  const cls = getClass();
+  state.exams[cls.id] = (state.exams[cls.id] || []).filter(e => e.id !== examId);
+  _activeExamId = null;
+  save();
+  renderExams();
+  showToast('Exam register deleted');
+}
+
+function calcResults(exam) { return { total:'—', percentage:'—', gpa:'—', grade:'—', gradeColor:'#94a3b8' }; }
+function updateMark() {}
+
+// ═══════════════════════════════════════
+//  EXPORT TO EXCEL (SheetJS)
+// ═══════════════════════════════════════
+
+async function xlsxDownload(wb, filename) {
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([wbout], { type: 'application/octet-stream' });
+  const ok = await universalSave(blob, filename, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  if (ok) showToast('✅ Excel saved!');
+  else showToast('❌ Export failed');
+}
+
+function exportStudentsExcel() {
+  const cls = getClass();
+  if (!cls || !cls.students || cls.students.length === 0) { showToast('No students to export'); return; }
+
+  const headers = ['Roll No','Student Name','Father Name','Mother Name','Date of Birth','Caste','Blood Group','Aadhaar Number','Residential Address','Mobile Number','WhatsApp Number','Bank A/C Number','IFSC Code'];
+
+  const rows = cls.students.map(s => [
+    s.roll, s.name, s.father||'', s.mother||'', s.dob||'',
+    s.caste||'', s.blood||'', s.aadhaar||'', s.address||'',
+    s.mobile||'', s.whatsapp||'', s.account||'', s.ifsc||''
+  ]);
+
+  const wb = XLSX.utils.book_new();
+  const wsData = [headers, ...rows];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Column widths
+  ws['!cols'] = [8,22,20,20,14,12,10,18,30,14,14,18,14].map(w => ({ wch: w }));
+
+  // Style header row bold (basic)
+  headers.forEach((_, i) => {
+    const cell = ws[XLSX.utils.encode_cell({ r: 0, c: i })];
+    if (cell) cell.s = { font: { bold: true }, fill: { fgColor: { rgb: '1a3a5c' } } };
+  });
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Students');
+
+  // Info sheet
+  const infoData = [
+    ['Class', cls.name],
+    ['Subject', cls.subject || ''],
+    ['Academic Year', cls.year || ''],
+    ['Total Students', cls.students.length],
+    ['Generated On', new Date().toLocaleDateString('en-IN')],
+    ['Teacher', state.teacher ? state.teacher.name : ''],
+  ];
+  const wsInfo = XLSX.utils.aoa_to_sheet(infoData);
+  wsInfo['!cols'] = [{ wch: 18 }, { wch: 28 }];
+  XLSX.utils.book_append_sheet(wb, wsInfo, 'Info');
+
+  xlsxDownload(wb, `${cls.name}_Students.xlsx`);
+  showToast('Excel downloaded! 📊');
+}
+
+function exportAttendanceExcel() {
+  const cls = getClass();
+  if (!cls || !cls.students || cls.students.length === 0) { showToast('No students to export'); return; }
+
+  const date = document.getElementById('att-date').value;
+  const classAtt = state.attendance[cls.id] || {};
+
+  // Build all dates that have attendance
+  const allDates = Object.keys(classAtt).sort();
+
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Single date attendance
+  const dayAtt = classAtt[date] || {};
+  let present = 0, absent = 0, sick = 0, leave = 0;
+  const singleRows = cls.students.map(s => {
+    const st = dayAtt[s.id] || 'Not Marked';
+    if (st === 'P') present++;
+    if (st === 'A') absent++;
+    if (st === 'S') sick++;
+    if (st === 'L') leave++;
+    return [s.roll||'—', s.name, st === 'P' ? 'Present' : st === 'A' ? 'Absent' : st === 'S' ? 'Sick' : st === 'L' ? 'Leave' : 'Not Marked'];
+  });
+  const singleData = [
+    [`${cls.name} – Attendance`],
+    [`Date: ${date}`, `Total: ${cls.students.length}`, `Present: ${present}`, `Absent: ${absent}`, `Sick: ${sick}`, `Leave: ${leave}`],
+    [],
+    ['Roll No', 'Student Name', 'Status'],
+    ...singleRows
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet(singleData);
+  ws1['!cols'] = [{ wch: 10 }, { wch: 24 }, { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, ws1, date || 'Attendance');
+
+  // Sheet 2: Full attendance register (all dates)
+  if (allDates.length > 0) {
+    const headerRow = ['Roll No', 'Student Name', ...allDates];
+    const fullRows = cls.students.map(s => {
+      const statuses = allDates.map(d => {
+        const st = (classAtt[d] || {})[s.id];
+        return st === 'P' ? 'P' : st === 'A' ? 'A' : st === 'S' ? 'S' : st === 'L' ? 'L' : '';
+      });
+      return [s.roll||'—', s.name, ...statuses];
+    });
+    const fullData = [headerRow, ...fullRows];
+    const ws2 = XLSX.utils.aoa_to_sheet(fullData);
+    ws2['!cols'] = [{ wch: 8 }, { wch: 22 }, ...allDates.map(() => ({ wch: 12 }))];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Full Register');
+  }
+
+  xlsxDownload(wb, `${cls.name}_Attendance_${date}.xlsx`);
+  showToast('Attendance Excel downloaded! 📊');
+}
+
+function exportAllMarksExcel() {
+  const cls = getClass();
+  if (!cls) return;
+  const exams = state.exams[cls.id] || [];
+  if (exams.length === 0) { showToast('No exam registers to export'); return; }
+
+  const wb = XLSX.utils.book_new();
+
+  exams.forEach(exam => {
+    const students = cls.students || [];
+    const cols = EXAM_COLUMNS;
+
+    // Title row: e.g. "MPC-II @CHEMISTRY INTERNAL MARKS"
+    const titleRow = [`${cls.name} @${exam.subjects.join('/')} INTERNAL MARKS`];
+    // Header row
+    const headerRow = ['S.NO.', 'STUDENT NAME', ...cols, 'TOTAL', '%', 'GRADE'];
+
+    const dataRows = students.map((s, idx) => {
+      const markCells = cols.map(col => {
+        const v = (exam.marks[s.id] || {})[col];
+        return (v !== undefined && v !== '') ? v : '';
+      });
+      const filled = markCells.filter(v => v !== '');
+      const total = filled.length > 0 ? filled.reduce((a,b) => a + parseFloat(b), 0) : '';
+      const pct = total !== '' ? Math.round((total / (filled.length * exam.maxMarks)) * 100) + '%' : '';
+      const pctNum = total !== '' ? Math.round((total / (filled.length * exam.maxMarks)) * 100) : null;
+      const grade = pctNum === null ? '' : pctNum >= 90 ? 'A+' : pctNum >= 80 ? 'A' : pctNum >= 70 ? 'B+' : pctNum >= 60 ? 'B' : pctNum >= 50 ? 'C' : pctNum >= 35 ? 'D' : 'F';
+      return [idx + 1, s.name, ...markCells, total !== '' ? total : '', pct, grade];
+    });
+
+    const wsData = [titleRow, headerRow, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Merge title row across all columns
+    ws['!merges'] = [{ s: {r:0, c:0}, e: {r:0, c: headerRow.length - 1} }];
+    // Column widths
+    ws['!cols'] = [
+      { wch: 6 }, { wch: 22 },
+      ...cols.map(() => ({ wch: 10 })),
+      { wch: 8 }, { wch: 7 }, { wch: 7 }
+    ];
+
+    const sheetName = exam.name.replace(/[^a-zA-Z0-9\-_ ]/g,'').substring(0, 28);
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  });
+
+  xlsxDownload(wb, `${cls.name}_Chemistry_Internals.xlsx`);
+  showToast('Excel exported! 📊 — Matches your register format');
+}
+
+// ═══════════════════════════════════════
+//  MODAL HELPERS
+// ═══════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) closeModal(m.id); });
+});
+
+// ═══════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ═══════════════════════════════════════
+//  ACCOUNT BOOK
+// ═══════════════════════════════════════
+
+function initAccountTab() {
+  const cls = getClass();
+  if (!cls || !cls.students || cls.students.length === 0) return;
+  const sel = document.getElementById('acc-student-select');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = `<option value="">— Select Student —</option>` +
+    cls.students.map(s => `<option value="${s.id}">${s.roll ? s.roll+'. ':''} ${s.name}</option>`).join('');
+  if (prev) sel.value = prev;
+  // Set today's date
+  const di = document.getElementById('acc-txn-date');
+  if (di && !di.value) di.value = new Date().toISOString().split('T')[0];
+  loadAccountBook();
+}
+
+function loadAccountBook() {
+  const cls = getClass();
+  const sel = document.getElementById('acc-student-select');
+  if (!sel) return;
+  const sid = sel.value;
+
+  const summary = document.getElementById('acc-summary');
+  const addBar  = document.getElementById('acc-add-bar');
+  const ledger  = document.getElementById('acc-ledger');
+
+  if (!sid) {
+    summary.style.display = 'none';
+    addBar.style.display  = 'none';
+    ledger.innerHTML = `<div class="empty-state"><div class="emoji">💰</div><p>Select a student to view their account.</p></div>`;
+    return;
+  }
+
+  summary.style.display = 'block';
+  addBar.style.display  = 'block';
+
+  const student = cls.students.find(s => s.id === sid);
+  if (!state.accounts) state.accounts = {};
+  if (!state.accounts[cls.id]) state.accounts[cls.id] = {};
+  if (!state.accounts[cls.id][sid]) state.accounts[cls.id][sid] = [];
+
+  const txns = state.accounts[cls.id][sid]; // array of {id, date, type, amount, reason}
+
+  // Sort by date
+  const sorted = [...txns].sort((a,b) => a.date.localeCompare(b.date));
+
+  // Running balance
+  let balance = 0;
+  let totalCredit = 0, totalDebit = 0;
+  const rows = sorted.map((t, idx) => {
+    const amt = parseFloat(t.amount) || 0;
+    if (t.type === 'credit') { balance += amt; totalCredit += amt; }
+    else                     { balance -= amt; totalDebit  += amt; }
+    const balColor = balance >= 0 ? '#1e293b' : '#dc2626';
+    return `
+      <tr class="${t.type}-row" id="txn-row-${t.id}">
+        <td>${idx+1}</td>
+        <td>${t.date ? new Date(t.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}) : '—'}</td>
+        <td class="credit-amt">${t.type==='credit' ? '₹'+amt.toFixed(0) : ''}</td>
+        <td class="debit-amt">${t.type==='debit' ? '₹'+amt.toFixed(0) : ''}</td>
+        <td class="col-reason">${t.reason || '<span style="color:#94a3b8;font-style:italic;">No reason</span>'}</td>
+        <td class="balance-amt" style="color:${balColor};">₹${balance.toFixed(0)}</td>
+        <td style="white-space:nowrap;">
+          <button class="del-txn" style="color:#0d9e8a;margin-right:2px;" onclick="openEditTransaction('${sid}','${t.id}')" title="Edit">✏️</button>
+          <button class="del-txn" onclick="deleteTransaction('${sid}','${t.id}')" title="Delete">🗑</button>
+        </td>
+      </tr>`;
+  }).join('');
+
+  // Update summary
+  document.getElementById('acc-balance-display').textContent = '₹' + balance.toFixed(0);
+  document.getElementById('acc-balance-display').style.color = balance < 0 ? '#fca5a5' : 'white';
+  document.getElementById('acc-student-name-display').textContent = student ? student.name : '';
+  document.getElementById('acc-total-credit').textContent = '₹' + totalCredit.toFixed(0);
+  document.getElementById('acc-total-debit').textContent  = '₹' + totalDebit.toFixed(0);
+
+  if (sorted.length === 0) {
+    ledger.innerHTML = `<div class="empty-state"><div class="emoji">📒</div><p>No transactions yet.<br>Add the first entry above.</p></div>`;
+    return;
+  }
+
+  ledger.innerHTML = `
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table class="ledger-table">
+        <tr>
+          <th style="width:32px;">#</th>
+          <th style="min-width:80px;">DATE</th>
+          <th style="min-width:80px;color:#86efac;">CREDIT ₹</th>
+          <th style="min-width:80px;color:#fca5a5;">DEBIT ₹</th>
+          <th class="col-reason">REASON</th>
+          <th style="min-width:80px;">BALANCE ₹</th>
+          <th style="width:36px;"></th>
+        </tr>
+        ${rows}
+      </table>
+    </div>`;
+}
+
+function addTransaction() {
+  const cls = getClass();
+  const sid = document.getElementById('acc-student-select').value;
+  if (!sid) { showToast('Select a student first'); return; }
+  const amt = parseFloat(document.getElementById('acc-txn-amount').value);
+  if (!amt || amt <= 0) { showToast('Enter a valid amount'); return; }
+  const date   = document.getElementById('acc-txn-date').value || new Date().toISOString().split('T')[0];
+  const type   = document.getElementById('acc-txn-type').value;
+  const reason = document.getElementById('acc-txn-reason').value.trim();
+
+  if (!state.accounts) state.accounts = {};
+  if (!state.accounts[cls.id]) state.accounts[cls.id] = {};
+  if (!state.accounts[cls.id][sid]) state.accounts[cls.id][sid] = [];
+
+  state.accounts[cls.id][sid].push({ id:'txn_'+Date.now(), date, type, amount:amt, reason });
+  save();
+  document.getElementById('acc-txn-amount').value = '';
+  document.getElementById('acc-txn-reason').value = '';
+  loadAccountBook();
+  showToast(type==='credit' ? '💚 Credit added!' : '❤️ Debit added!');
+}
+
+function deleteTransaction(sid, txnId) {
+  if (!confirm('Delete this entry?')) return;
+  const cls = getClass();
+  state.accounts[cls.id][sid] = state.accounts[cls.id][sid].filter(t => t.id !== txnId);
+  save();
+  loadAccountBook();
+  showToast('Entry deleted');
+}
+
+function openEditTransaction(sid, txnId) {
+  const cls = getClass();
+  const txns = (state.accounts[cls.id] || {})[sid] || [];
+  const t = txns.find(x => x.id === txnId);
+  if (!t) return;
+
+  document.getElementById('edit-txn-sid').value    = sid;
+  document.getElementById('edit-txn-id').value     = txnId;
+  document.getElementById('edit-txn-date').value   = t.date || '';
+  document.getElementById('edit-txn-type').value   = t.type || 'credit';
+  document.getElementById('edit-txn-amount').value = t.amount || '';
+  document.getElementById('edit-txn-reason').value = t.reason || '';
+
+  openModal('modal-edit-txn');
+}
+
+function saveEditTransaction() {
+  const sid    = document.getElementById('edit-txn-sid').value;
+  const txnId  = document.getElementById('edit-txn-id').value;
+  const date   = document.getElementById('edit-txn-date').value;
+  const type   = document.getElementById('edit-txn-type').value;
+  const amount = parseFloat(document.getElementById('edit-txn-amount').value);
+  const reason = document.getElementById('edit-txn-reason').value.trim();
+
+  if (!amount || amount <= 0) { showToast('Enter a valid amount'); return; }
+
+  const cls = getClass();
+  const txns = (state.accounts[cls.id] || {})[sid] || [];
+  const t = txns.find(x => x.id === txnId);
+  if (!t) { showToast('Transaction not found'); return; }
+
+  // Update all fields
+  t.date   = date;
+  t.type   = type;
+  t.amount = amount;
+  t.reason = reason;
+
+  save();
+  closeModal('modal-edit-txn');
+  loadAccountBook();
+  showToast('Transaction updated! ✅');
+}
+
+function toggleAccType() {
+  // Could add visual cue — placeholder for future
+}
+
+function exportAccountExcel() {
+  const cls = getClass();
+  const sid = document.getElementById('acc-student-select').value;
+  if (!cls) return;
+
+  const wb = XLSX.utils.book_new();
+  const students = sid ? [cls.students.find(s=>s.id===sid)].filter(Boolean) : cls.students;
+
+  students.forEach(student => {
+    const txns = ((state.accounts || {})[cls.id] || {})[student.id] || [];
+    const sorted = [...txns].sort((a,b) => a.date.localeCompare(b.date));
+    let balance = 0;
+
+    const titleRow = [`${cls.name} — Account Book — ${student.name}`];
+    const hdr = ['S.NO.','DATE','CREDIT (₹)','DEBIT (₹)','REASON','BALANCE (₹)'];
+    const rows = sorted.map((t,i) => {
+      const amt = parseFloat(t.amount)||0;
+      if (t.type==='credit') balance+=amt; else balance-=amt;
+      return [i+1, t.date, t.type==='credit'?amt:'', t.type==='debit'?amt:'', t.reason||'', balance];
+    });
+
+    const wsData = [titleRow, hdr, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:5}}];
+    ws['!cols'] = [{wch:6},{wch:14},{wch:12},{wch:12},{wch:28},{wch:14}];
+    const shName = student.name.replace(/[^a-zA-Z0-9 ]/g,'').substring(0,28);
+    XLSX.utils.book_append_sheet(wb, ws, shName);
+  });
+
+  xlsxDownload(wb, `${cls.name}_AccountBook.xlsx`);
+  showToast('Account Excel exported! 📊');
+}
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+load();
+if (state.teacher) {
+  loadDashboard();
+  showScreen('screen-dashboard');
+}
+</script>
+
+
+<script>
+const tabsSwipe=['tab-personal','tab-attendance','tab-exams','tab-accounts'];
+let currentTabIndex=0;
+let startX=0,startY=0,isHorizontal=false;
+
+document.addEventListener('DOMContentLoaded',()=>{
+ const classScreen=document.getElementById('screen-class');
+ if(!classScreen) return;
+
+ classScreen.addEventListener('touchstart',e=>{
+   startX=e.touches[0].clientX;
+   startY=e.touches[0].clientY;
+   isHorizontal=false;
+ },{passive:true});
+
+ classScreen.addEventListener('touchmove',e=>{
+   const dx=Math.abs(e.touches[0].clientX-startX);
+   const dy=Math.abs(e.touches[0].clientY-startY);
+   if(dx>dy && dx>20) isHorizontal=true;
+ },{passive:true});
+
+ classScreen.addEventListener('touchend',e=>{
+   if(!isHorizontal) return; // allow normal vertical scrolling
+
+   const diff=startX-e.changedTouches[0].clientX;
+
+   if(Math.abs(diff)<120) return; // prevent accidental tab changes
+
+   if(diff>0 && currentTabIndex<tabsSwipe.length-1){
+      currentTabIndex++;
+      document.querySelectorAll('.tab')[currentTabIndex]?.click();
+   }else if(diff<0 && currentTabIndex>0){
+      currentTabIndex--;
+      document.querySelectorAll('.tab')[currentTabIndex]?.click();
+   }
+ },{passive:true});
+});
+
+const _originalSwitchTab=window.switchTab;
+window.switchTab=function(tabId,btn){
+ if(typeof _originalSwitchTab==='function'){
+   _originalSwitchTab(tabId,btn);
+   const tc=document.getElementById(tabId);
+   if(tc) requestAnimationFrame(()=>{tc.scrollTop=0;});
+ }
+ currentTabIndex=tabsSwipe.indexOf(tabId);
+}
+
+/* ── Block pull-to-refresh for Android WebView / APK ──
+   Android's SwipeRefreshLayout fires on the very first touchmove.
+   We must: (1) capture touchstart with passive:false so we CAN call
+   preventDefault on the first touchmove, and (2) preventDefault on
+   any downward swipe while the nearest scrollable ancestor is at top. */
+(function(){
+  let startY = 0;
+  let startX = 0;
+  let mayRefresh = false;   // true if gesture might trigger pull-to-refresh
+
+  function nearestScroller(node){
+    while(node && node !== document.documentElement){
+      if(node.nodeType === 1){
+        const oy = getComputedStyle(node).overflowY;
+        if((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight + 1){
+          return node;
+        }
+      }
+      node = node.parentNode;
+    }
+    return null;
+  }
+
+  // passive:false on touchstart so we can preventDefault in touchmove
+  document.addEventListener('touchstart', function(e){
+    if(e.touches.length !== 1){ mayRefresh = false; return; }
+    startY = e.touches[0].clientY;
+    startX = e.touches[0].clientX;
+    const scroller = nearestScroller(e.target);
+    // Only block if we're at the very top of the scroller (or no scroller)
+    mayRefresh = !scroller || scroller.scrollTop <= 0;
+  }, {passive: false, capture: true});
+
+  document.addEventListener('touchmove', function(e){
+    if(!mayRefresh || e.touches.length !== 1) return;
+    const dy = e.touches[0].clientY - startY;
+    const dx = Math.abs(e.touches[0].clientX - startX);
+    // Horizontal swipe → not a refresh gesture, allow freely
+    if(dx > Math.abs(dy)){ mayRefresh = false; return; }
+    if(dy > 0){
+      // Downward pull at top → block it entirely (kills pull-to-refresh)
+      e.preventDefault();
+      e.stopPropagation();
+    } else {
+      // Upward scroll → user is scrolling content, release
+      mayRefresh = false;
+    }
+  }, {passive: false, capture: true});
+})();
+</script>
+<!-- Custom Save Dialog — pre-fills filename so user just taps OK -->
+<div class="modal-overlay" id="modal-save-dialog" style="z-index:9999;">
+  <div style="background:#fff;border-radius:16px;padding:24px;margin:20px;max-width:340px;width:90%;">
+    <div style="font-size:17px;font-weight:700;color:var(--navy);margin-bottom:16px;">💾 Save File</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">File name:</div>
+    <input id="save-dialog-filename" type="text"
+      style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;margin-bottom:16px;box-sizing:border-box;color:var(--text);">
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeSaveDialog()" 
+        style="flex:1;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:#fff;font-size:14px;color:var(--muted);">Cancel</button>
+      <button onclick="confirmSaveDialog()"
+        style="flex:1;padding:12px;border:none;border-radius:10px;background:var(--teal);color:#fff;font-size:14px;font-weight:700;">Save ✅</button>
+    </div>
+  </div>
+</div>
+
+
